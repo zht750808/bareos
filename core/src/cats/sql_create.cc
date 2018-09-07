@@ -998,9 +998,9 @@ bool BareosDb::CreateFileRecord(JobControlRecord *jcr, AttributesDbRecord *ar)
    /* Must create it */
    Mmsg(cmd,
         "INSERT INTO File (FileIndex,JobId,PathId,Name,"
-        "LStat,MD5,DeltaSeq,Fhinfo,Fhnode) VALUES (%u,%u,%u,'%s','%s','%s',%u,%llu,%llu)",
+        "LStat,MD5,DeltaSeq,Fhinfo,Fhnode, ClientId) VALUES (%u,%u,%u,'%s','%s','%s',%u,%llu,%llu,%u)",
         ar->FileIndex, ar->JobId, ar->PathId, esc_name,
-        ar->attr, digest, ar->DeltaSeq, ar->Fhinfo, ar->Fhnode);
+        ar->attr, digest, ar->DeltaSeq, ar->Fhinfo, ar->Fhnode, ar->ClientId);
 
    ar->FileId = SqlInsertAutokeyRecord(cmd, NT_("File"));
    if (ar->FileId == 0) {
