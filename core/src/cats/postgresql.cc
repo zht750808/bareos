@@ -1050,6 +1050,7 @@ bool BareosDbPostgresql::SqlBatchStart(JobControlRecord *jcr)
                                   "Name varchar,"
                                   "LStat varchar,"
                                   "Md5 varchar,"
+				  "ClientId int,"
                                   "DeltaSeq smallint,"
                                   "Fhinfo NUMERIC(20),"
                                   "Fhnode NUMERIC(20))")) {
