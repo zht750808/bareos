@@ -865,7 +865,7 @@ bool BareosDb::WriteBatchFileRecords(JobControlRecord *jcr)
                      "SELECT batch.FileIndex, batch.JobId, Path.PathId, "
                      "batch.Name, batch.LStat, batch.MD5, batch.DeltaSeq, batch.Fhinfo, batch.Fhnode, batch.ClientId "
                      "FROM batch "
-                     "JOIN Path ON (batch.Path = Path.Path) ", jcr->ClientId)) {
+                     "JOIN Path ON (batch.Path = Path.Path) ")) {
       Jmsg1(jcr, M_FATAL, 0, "Fill File table %s\n", errmsg);
       goto bail_out;
    }

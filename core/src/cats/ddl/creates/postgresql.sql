@@ -296,6 +296,15 @@ CREATE TABLE Client
 
 CREATE UNIQUE INDEX client_name_idx ON Client (Name);
 
+-- Get ClientId for a job, Postgres will cache results for
+-- functions marked immutable
+CREATE OR REPLACE FUNCTION client_of_job ( Id INTEGER) RETURNS INTEGER AS $$
+BEGIN
+   RETURN (SELECT ClientId from Job WHERE JobId=Id);
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+
 -- Function and trigger to partition Job and File table
 -- when client is inserted into Client table
 CREATE OR REPLACE FUNCTION partition_by_client()
