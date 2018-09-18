@@ -80,6 +80,7 @@ public:
       SQL_QUERY_bvfs_ls_sub_dirs_5 = 74,
       SQL_QUERY_list_volumes_select_0 = 75,
       SQL_QUERY_list_volumes_select_long_0 = 76,
-      SQL_QUERY_NUMBER = 77
+      SQL_QUERY_batch_insert_file_table_1 = 77,
+      SQL_QUERY_NUMBER = 78
    } SQL_QUERY_ENUM;
 };

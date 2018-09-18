@@ -59,8 +59,8 @@ const char *BareosDb::query_names[] = {
 "insert_counter_values",
 "select_counter_values",
 "update_counter_values",
-"GetQuotaJobbytes",
-"GetQuotaJobbytesNofailed",
+"get_quota_jobbytes",
+"get_quota_jobbytes_nofailed",
 "uar_sel_jobid_copies",
 "get_jobstatus_details",
 "bvfs_versions_6",
@@ -78,5 +78,6 @@ const char *BareosDb::query_names[] = {
 "bvfs_ls_sub_dirs_5",
 "list_volumes_select_0",
 "list_volumes_select_long_0",
+"batch_insert_file_table_1",
 NULL
 };

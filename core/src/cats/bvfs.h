@@ -81,6 +81,13 @@ public:
       db->EscapeString(jcr, pattern, p, len);
    }
 
+   void SetClientname(char *p) {
+      uint32_t len = strlen(p);
+      clientname = CheckPoolMemorySize(clientname, len * 2 + 1);
+      db->EscapeString(jcr, clientname, p, len);
+   }
+
+
    /* Get the root point */
    DBId_t get_root();
 
@@ -162,6 +169,7 @@ private:
    uint32_t offset;
    uint32_t nb_record;          /* number of records of the last query */
    POOLMEM *pattern;
+   POOLMEM *clientname;
    DBId_t pwd_id;               /* Current pathid */
    POOLMEM *prev_dir; /* ls_dirs query returns all versions, take the 1st one */
    Attributes *attr;        /* Can be use by handler to call DecodeStat() */

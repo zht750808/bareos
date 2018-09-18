@@ -430,7 +430,8 @@ Bvfs::Bvfs(JobControlRecord *j, BareosDb *mdb) {
    jobids = GetPoolMemory(PM_NAME);
    prev_dir = GetPoolMemory(PM_NAME);
    pattern = GetPoolMemory(PM_NAME);
-   *jobids = *prev_dir = *pattern = 0;
+   clientname = GetPoolMemory(PM_NAME);
+   *jobids = *prev_dir = *pattern = *clientname = 0;
    pwd_id = 0;
    see_copies = false;
    see_all_versions = false;
@@ -444,6 +445,7 @@ Bvfs::Bvfs(JobControlRecord *j, BareosDb *mdb) {
 Bvfs::~Bvfs() {
    FreePoolMemory(jobids);
    FreePoolMemory(pattern);
+   FreePoolMemory(clientname);
    FreePoolMemory(prev_dir);
    FreeAttr(attr);
    jcr->DecUseCount();
@@ -669,12 +671,13 @@ bool Bvfs::ls_dirs()
 
    return true;
 }
-
+// maik: hier ClientId reinbringen
 static void build_ls_files_query(JobControlRecord *jcr, BareosDb *db, PoolMem &query,
                                  const char *JobId, const char *PathId,
                                  const char *filter, int64_t limit, int64_t offset)
 {
    if (db->GetTypeIndex() == SQL_TYPE_POSTGRESQL) {
+	   // maik: query kopieren und mit clientname/id neu machen
       db->FillQuery(query, BareosDb::SQL_QUERY_bvfs_list_files, JobId, PathId, JobId, PathId, filter, limit, offset);
    } else {
       db->FillQuery(query, BareosDb::SQL_QUERY_bvfs_list_files, JobId, PathId, JobId, PathId, limit, offset, filter, JobId, JobId);

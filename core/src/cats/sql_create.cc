@@ -859,13 +859,19 @@ bool BareosDb::WriteBatchFileRecords(JobControlRecord *jcr)
       Jmsg1(jcr, M_FATAL, 0, "Unlock Path table %s\n", errmsg);
       goto bail_out;
    }
-
+/*
    if (!jcr->db_batch->SqlQuery(
                      "INSERT INTO File (FileIndex, JobId, PathId, Name, LStat, MD5, DeltaSeq, Fhinfo, Fhnode, ClientId) "
                      "SELECT batch.FileIndex, batch.JobId, Path.PathId, "
                      "batch.Name, batch.LStat, batch.MD5, batch.DeltaSeq, batch.Fhinfo, batch.Fhnode, %u "
                      "FROM batch "
                      "JOIN Path ON (batch.Path = Path.Path) ", jcr->ClientId)) {
+      Jmsg1(jcr, M_FATAL, 0, "Fill File table %s\n", errmsg);
+      goto bail_out;
+   }
+*/
+
+   if (!jcr->db_batch->SqlQuery(SQL_QUERY_batch_insert_file_table_1, jcr->ClientId)) {
       Jmsg1(jcr, M_FATAL, 0, "Fill File table %s\n", errmsg);
       goto bail_out;
    }
