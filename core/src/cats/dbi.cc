@@ -1219,6 +1219,7 @@ bool BareosDbDBI::SqlBatchStart(JobControlRecord *jcr)
                                      "Name varchar,"
                                      "LStat varchar,"
                                      "MD5 varchar,"
+				     "ClientId int,"
                                      "DeltaSeq int)")) {
          Dmsg0(500, "SqlBatchStart failed\n");
          goto bail_out;
@@ -1385,7 +1386,7 @@ bool BareosDbDBI::SqlBatchInsert(JobControlRecord *jcr, AttributesDbRecord *ar)
       postgresql_copy_escape(esc_path, path, pnl);
       len = Mmsg(cmd, "%u\t%s\t%s\t%s\t%s\t%s\t%u\n",
                      ar->FileIndex, edit_int64(ar->JobId, ed1), esc_path,
-                     esc_name, ar->attr, digest, ar->DeltaSeq);
+                     esc_name, ar->attr, digest, ar->ClientId, ar->DeltaSeq);
 
       /*
        * libdbi don't support CopyData and we need call a postgresql
