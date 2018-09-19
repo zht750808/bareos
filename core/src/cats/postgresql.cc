@@ -1050,7 +1050,6 @@ bool BareosDbPostgresql::SqlBatchStart(JobControlRecord *jcr)
                                   "Name varchar,"
                                   "LStat varchar,"
                                   "Md5 varchar,"
-				  "ClientId int,"
                                   "DeltaSeq smallint,"
                                   "Fhinfo NUMERIC(20),"
                                   "Fhnode NUMERIC(20))")) {
@@ -1167,10 +1166,10 @@ bool BareosDbPostgresql::SqlBatchInsert(JobControlRecord *jcr, AttributesDbRecor
       digest = ar->Digest;
    }
 
-   len = Mmsg(cmd, "%u\t%s\t%s\t%s\t%s\t%s\t%u\t%s\t%s\t%s\n",
+   len = Mmsg(cmd, "%u\t%s\t%s\t%s\t%s\t%s\t%u\t%s\t%s\n",
               ar->FileIndex, edit_int64(ar->JobId, ed1), esc_path,
-              esc_name, ar->attr, digest,  edit_int64(ar->ClientId, ed1),
-              ar->DeltaSeq, edit_uint64(ar->Fhinfo,ed2),
+              esc_name, ar->attr, digest, ar->DeltaSeq,
+              edit_uint64(ar->Fhinfo,ed2),
               edit_uint64(ar->Fhnode,ed3));
 
    do {
