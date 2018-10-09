@@ -1243,7 +1243,7 @@ int PluginCreateFile(JobControlRecord *jcr, Attributes *attr, BareosWinFilePacke
    }
 
    if (!b_ctx->restoreFileStarted || b_ctx->createFileCalled) {
-      Jmsg2(jcr, M_FATAL, 0, "Unbalanced call to createFile=%d %d\n",
+      Jmsg2(jcr, M_ERROR, 0, "Unbalanced call to createFile=%d %d\n",
             b_ctx->createFileCalled, b_ctx->restoreFileStarted);
       b_ctx->createFileCalled = false;
       return CF_ERROR;
