@@ -93,6 +93,10 @@ static alist *reload_table = NULL;
 /* Globals Imported */
 extern ResourceItem job_items[];
 
+namespace websocketserver {
+  extern void start_websocketserver();
+}
+
 typedef enum {
    CHECK_CONNECTION,  /* Check catalog connection */
    UPDATE_CATALOG,    /* Ensure that catalog is ok with conf */
@@ -424,6 +428,9 @@ int main (int argc, char *argv[])
    InitSighandlerSighup();
 
    InitConsoleMsg(working_directory);
+
+   websocketserver::start_websocketserver();
+
 
    Dmsg0(200, "Start UA server\n");
    if (!StartSocketServer(me->DIRaddrs)) {

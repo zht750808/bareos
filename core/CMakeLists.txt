@@ -604,6 +604,8 @@ add_subdirectory(manpages)
 add_subdirectory(platforms)
 add_subdirectory(src)
 
+add_subdirectory(../../seasocks ../../../seasocks/build)
+
 STRING(TIMESTAMP NOW "%Y-%m-%d %H:%M:%S")
 
 # give configure output
