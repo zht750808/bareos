@@ -36,6 +36,7 @@
 #include "dird/socket_server.h"
 #include "dird/stats.h"
 #include "dird/ua_db.h"
+#include "dird/websocketserver.h"
 #include "lib/daemon.h"
 #include "lib/edit.h"
 #include "lib/tls_openssl.h"
@@ -89,13 +90,10 @@ static char *runjob = NULL;
 static bool background = true;
 static bool test_config = false;
 static alist *reload_table = NULL;
+static std::unique_ptr<WebsocketServer> websocketserver;
 
 /* Globals Imported */
 extern ResourceItem job_items[];
-
-namespace websocketserver {
-  extern void start_websocketserver();
-}
 
 typedef enum {
    CHECK_CONNECTION,  /* Check catalog connection */
@@ -429,8 +427,12 @@ int main (int argc, char *argv[])
 
    InitConsoleMsg(working_directory);
 
-   websocketserver::start_websocketserver();
-
+   websocketserver.reset(new WebsocketServer());
+   if (!websocketserver) {
+     Dmsg0(100, "Start of WebsocketServer failed\n");
+     TerminateDird(0);
+   }
+   websocketserver->Start();
 
    Dmsg0(200, "Start UA server\n");
    if (!StartSocketServer(me->DIRaddrs)) {
@@ -517,6 +519,7 @@ void TerminateDird(int sig)
    }
 
    StopSocketServer();
+   websocketserver->Stop();
    TermMsg();                        /* Terminate message handler */
    CleanupCrypto();
    CloseMemoryPool();               /* release free memory in pool */

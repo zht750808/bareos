@@ -19,6 +19,8 @@
    02110-1301, USA.
 */
 
+#include "websocketserver.h"
+
 #include "seasocks/PageHandler.h"
 #include "seasocks/PrintfLogger.h"
 #include "seasocks/Server.h"
@@ -28,57 +30,75 @@
 #include <memory>
 #include <set>
 #include <string>
+#include <thread>
+#include <exception>
 
-// Simple chatroom server, showing how one might use authentication.
+struct Handler : seasocks::WebSocket::Handler {
+  std::set<seasocks::WebSocket*> _cons;
 
-using namespace std;
-using namespace seasocks;
+  void onConnect(seasocks::WebSocket* con) override
+  {
+    _cons.insert(con);
+    send(con->credentials()->username + " has joined");
+  }
+  void onDisconnect(seasocks::WebSocket* con) override
+  {
+    _cons.erase(con);
+    send(con->credentials()->username + " has left");
+  }
 
-namespace websocketserver {
+  void onData(seasocks::WebSocket* con, const char* data) override { send(con->credentials()->username + ": " + data); }
 
-struct Handler : WebSocket::Handler {
-    set<WebSocket*> _cons;
-
-    void onConnect(WebSocket* con) override {
-        _cons.insert(con);
-        send(con->credentials()->username + " has joined");
-    }
-    void onDisconnect(WebSocket* con) override {
-        _cons.erase(con);
-        send(con->credentials()->username + " has left");
-    }
-
-    void onData(WebSocket* con, const char* data) override {
-        send(con->credentials()->username + ": " + data);
-    }
-
-    void send(const string& msg) {
-        for (auto* con : _cons) {
-            con->send(msg);
-        }
-    }
+  void send(const std::string& msg)
+  {
+    for (auto* con : _cons) { con->send(msg); }
+  }
 };
 
-struct MyAuthHandler : PageHandler {
-    shared_ptr<Response> handle(const Request& request) override {
-        // Here one would handle one's authentication system, for example;
-        // * check to see if the user has a trusted cookie: if so, accept it.
-        // * if not, redirect to a login handler page, and await a redirection
-        //   back here with relevant URL parameters indicating success. Then,
-        //   set the cookie.
-        // For this example, we set the user's authentication information purely
-        // from their connection.
-        request.credentials()->username = formatAddress(request.getRemoteAddress());
-        return Response::unhandled(); // cause next handler to run
-    }
+struct MyAuthHandler : seasocks::PageHandler {
+  std::shared_ptr<seasocks::Response> handle(const seasocks::Request& request) override
+  {
+    // Here one would handle one's authentication system, for example;
+    // * check to see if the user has a trusted cookie: if so, accept it.
+    // * if not, redirect to a login handler page, and await a redirection
+    //   back here with relevant URL parameters indicating success. Then,
+    //   set the cookie.
+    // For this example, we set the user's authentication information purely
+    // from their connection.
+    request.credentials()->username = seasocks::formatAddress(request.getRemoteAddress());
+    return seasocks::Response::unhandled();  // cause next handler to run
+  }
 };
 
-void start_websocketserver()
+WebsocketServer::WebsocketServer()
+  : server_(new seasocks::Server(std::make_shared<seasocks::PrintfLogger>()))
 {
-    Server server(make_shared<PrintfLogger>());
-    server.addPageHandler(make_shared<MyAuthHandler>());
-    server.addWebSocketHandler("/chat", make_shared<Handler>());
-    server.serve("/home/franku/01-prj/git/seasocks/src/ws_chatroom_web", 9000);
+  return;
 }
 
-} /* websocketserver */
+bool WebsocketServer::Start()
+{
+  try {
+    server_thread_.reset(new std::thread(WebsocketServerThread, server_));
+  }
+  catch( const std::exception &e ) {
+    std::cout << e.what() << std::endl;
+    return false;
+  }
+  return true;
+}
+
+void WebsocketServer::Stop()
+{
+  if (server_thread_) {
+    server_->terminate();
+    server_thread_->join();
+  }
+}
+
+void WebsocketServer::WebsocketServerThread(std::shared_ptr<seasocks::Server> s)
+{
+  s->addPageHandler(std::make_shared<MyAuthHandler>());
+  s->addWebSocketHandler("/chat", std::make_shared<Handler>());
+  s->serve("/home/franku/01-prj/git/seasocks/src/ws_chatroom_web", 9000);
+}
