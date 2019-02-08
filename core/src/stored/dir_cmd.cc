@@ -1723,7 +1723,7 @@ static bool PassiveCmd(JobControlRecord *jcr)
 
    jcr->passive_client = true;
 
-   fd = New(BareosSocketTCP);
+   fd = new BareosSocketTCP;
    if (me->nokeepalive) {
       fd->ClearKeepalive();
    }

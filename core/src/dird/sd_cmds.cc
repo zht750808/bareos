@@ -128,7 +128,7 @@ bool ConnectToStorageDaemon(JobControlRecord *jcr, int retry_interval,
    }
 
    Dmsg2(100, "bNetConnect to Storage daemon %s:%d\n", store->address, store->SDport);
-   std::unique_ptr<BareosSocket> sd(New(BareosSocketTCP));
+   std::unique_ptr<BareosSocket> sd(new BareosSocketTCP);
    if (!sd) {
       return false;
    }

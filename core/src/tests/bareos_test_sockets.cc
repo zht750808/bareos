@@ -104,7 +104,7 @@ std::unique_ptr<TestSockets> create_connected_server_and_client_bareos_socket()
     return nullptr;
   }
 
-  test_sockets->client.reset(New(BareosSocketTCP));
+  test_sockets->client.reset(new BareosSocketTCP);
   test_sockets->client->sleep_time_after_authentication_error = 0;
 
   bool ok = test_sockets->client->connect(NULL, 1, 1, 0, "Director daemon", HOST,
@@ -124,7 +124,7 @@ std::unique_ptr<TestSockets> create_connected_server_and_client_bareos_socket()
 BareosSocket *create_new_bareos_socket(int fd)
 {
   BareosSocket *bs;
-  bs = New(BareosSocketTCP);
+  bs = new BareosSocketTCP;
   bs->sleep_time_after_authentication_error = 0;
   bs->fd_ = fd;
   bs->SetWho(bstrdup("client"));

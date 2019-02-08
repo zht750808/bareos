@@ -184,7 +184,7 @@ static bool connect_to_server(std::string console_name, std::string console_pass
   password->encoding = p_encoding_md5;
   password->value = (char *)console_password.c_str();
 
-  std::shared_ptr<BareosSocketTCP> UA_sock(New(BareosSocketTCP));
+  std::shared_ptr<BareosSocketTCP> UA_sock(new BareosSocketTCP);
   UA_sock->sleep_time_after_authentication_error = 0;
   jcr.dir_bsock = UA_sock.get();
 
@@ -376,7 +376,7 @@ TEST(bsock, create_bareos_socket_unique_ptr)
     std::unique_ptr<BareosSocketTCPMock,std::function<void(BareosSocket*)>> p;
     {
       std::unique_ptr<BareosSocketTCPMock,std::function<void(BareosSocket*)>>
-                            p1(New(BareosSocketTCPMock(test_variable)), [](BareosSocket *p) {delete p;});
+                            p1(new BareosSocketTCPMock(test_variable), [](BareosSocket *p) {delete p;});
       EXPECT_NE(p1.get(), nullptr);
       p = std::move(p1);
       EXPECT_EQ(p1.get(), nullptr);

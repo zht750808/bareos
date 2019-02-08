@@ -127,7 +127,7 @@ bool MonitorItem::doconnect()
      dird = static_cast<DirectorResource*>(d->resource);
      message = QString("Connecting to Director %1:%2").arg(dird->address).arg(dird->DIRport);
      emit showStatusbarMessage(message);
-     d->DSock =  New(BareosSocketTCP);
+     d->DSock =  new BareosSocketTCP;
      if (!d->DSock->connect(NULL, d->connectTimeout, 0, 0, "Director daemon",
                             dird->address, NULL, dird->DIRport, false)) {
         delete d->DSock;
@@ -141,7 +141,7 @@ bool MonitorItem::doconnect()
      filed = static_cast<ClientResource*>(d->resource);
      message = QString("Connecting to Client %1:%2").arg(filed->address).arg(filed->FDport);
      emit showStatusbarMessage(message);
-     d->DSock =  New(BareosSocketTCP);
+     d->DSock =  new BareosSocketTCP;
      if (!d->DSock->connect(NULL, d->connectTimeout, 0, 0, "File daemon",
                             filed->address, NULL, filed->FDport, false)) {
         delete d->DSock;
@@ -155,7 +155,7 @@ bool MonitorItem::doconnect()
      stored = static_cast<StorageResource*>(d->resource);
      message = QString("Connecting to Storage %1:%2").arg(stored->address).arg(stored->SDport);
      emit showStatusbarMessage(message);
-     d->DSock =  New(BareosSocketTCP);
+     d->DSock =  new BareosSocketTCP;
      if (!d->DSock->connect(NULL, d->connectTimeout, 0, 0, "Storage daemon",
                             stored->address, NULL, stored->SDport, false)) {
         delete d->DSock;

@@ -1548,7 +1548,7 @@ static bool StorageCmd(JobControlRecord *jcr)
    char stored_addr[MAX_NAME_LENGTH];
    PoolMem sd_auth_key(PM_MESSAGE);
    BareosSocket *dir = jcr->dir_bsock;
-   BareosSocket *storage_daemon_socket = New(BareosSocketTCP);
+   BareosSocket *storage_daemon_socket = new BareosSocketTCP;
 
   if (me->nokeepalive) { storage_daemon_socket->ClearKeepalive(); }
    Dmsg1(100, "StorageCmd: %s", dir->msg);
