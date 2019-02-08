@@ -519,7 +519,7 @@ void TerminateDird(int sig)
    }
 
    StopSocketServer();
-   websocketserver->Stop();
+   if (websocketserver) { websocketserver->Stop(); }
    TermMsg();                        /* Terminate message handler */
    CleanupCrypto();
    CloseMemoryPool();               /* release free memory in pool */
