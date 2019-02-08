@@ -53,6 +53,8 @@ class QualifiedResourceNameTypeConverter;
 btimer_t *StartBsockTimer(BareosSocket *bs, uint32_t wait);
 void StopBsockTimer(btimer_t *wid);
 
+namespace seasocks { class WebSocket; }
+
 class BareosSocket {
   /*
    * Note, keep this public part before the private otherwise
@@ -81,6 +83,7 @@ class BareosSocket {
   bool TlsEstablished() const { return tls_established_; }
   std::shared_ptr<Tls> tls_conn; /* Associated tls connection */
   std::unique_ptr<Tls> tls_conn_init; /* during initialization */
+  seasocks::WebSocket *webs_conn; /* websocket connection */
   BareosVersionNumber connected_daemon_version_;
 
  protected:

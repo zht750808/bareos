@@ -85,10 +85,10 @@ void *HandleUserAgentClientRequest(BareosSocket *user_agent_socket)
    ua->UA_sock = user_agent_socket;
    SetJcrInTsd(INVALID_JCR);
 
-   bool success = AuthenticateConsole(ua);
-
-   if (!success) {
-      ua->quit = true;
+   if (!user_agent_socket->webs_conn) {
+      if (!AuthenticateConsole(ua)) {
+         ua->quit = true;
+      }
    }
 
    while (!ua->quit) {
@@ -105,7 +105,7 @@ void *HandleUserAgentClientRequest(BareosSocket *user_agent_socket)
          DequeueMessages(ua->jcr);
 
          if (!ua->quit) {
-            if (console_msg_pending && ua->AclAccessOk(Command_ACL, "messages")) {
+            if (console_msg_pending /* && ua->AclAccessOk(Command_ACL, "messages") */) {
                if (ua->auto_display_messages) {
                   PmStrcpy(ua->cmd, "messages");
                   DotMessagesCmd(ua, ua->cmd);

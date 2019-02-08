@@ -57,6 +57,7 @@ BareosSocket::BareosSocket()
     , sleep_time_after_authentication_error(5)
     , client_addr{0}
     , peer_addr{0}
+    , webs_conn(nullptr)
     , connected_daemon_version_(BareosVersionNumber::kUndefined)
 
     /* protected: */
@@ -103,6 +104,7 @@ BareosSocket::BareosSocket(const BareosSocket &other)
   client_addr                           = other.client_addr;
   peer_addr                             = other.peer_addr;
   tls_conn                              = other.tls_conn;
+  webs_conn                             = other.webs_conn;
   connected_daemon_version_             = other.connected_daemon_version_;
 
   /* protected: */

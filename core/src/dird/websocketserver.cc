@@ -19,6 +19,7 @@
    02110-1301, USA.
 */
 
+#include "include/bareos.h"
 #include "websocketserver.h"
 
 #include "seasocks/PageHandler.h"
@@ -26,6 +27,7 @@
 #include "seasocks/Server.h"
 #include "seasocks/WebSocket.h"
 #include "seasocks/StringUtil.h"
+#include "dird/websocket.h"
 
 #include <memory>
 #include <set>
@@ -33,27 +35,7 @@
 #include <thread>
 #include <exception>
 
-struct Handler : seasocks::WebSocket::Handler {
-  std::set<seasocks::WebSocket*> _cons;
-
-  void onConnect(seasocks::WebSocket* con) override
-  {
-    _cons.insert(con);
-    send(con->credentials()->username + " has joined");
-  }
-  void onDisconnect(seasocks::WebSocket* con) override
-  {
-    _cons.erase(con);
-    send(con->credentials()->username + " has left");
-  }
-
-  void onData(seasocks::WebSocket* con, const char* data) override { send(con->credentials()->username + ": " + data); }
-
-  void send(const std::string& msg)
-  {
-    for (auto* con : _cons) { con->send(msg); }
-  }
-};
+namespace directordaemon {
 
 struct MyAuthHandler : seasocks::PageHandler {
   std::shared_ptr<seasocks::Response> handle(const seasocks::Request& request) override
@@ -82,7 +64,7 @@ bool WebsocketServer::Start()
     server_thread_.reset(new std::thread(WebsocketServerThread, server_));
   }
   catch( const std::exception &e ) {
-    std::cout << e.what() << std::endl;
+    Dmsg0(100, e.what());
     return false;
   }
   return true;
@@ -99,6 +81,8 @@ void WebsocketServer::Stop()
 void WebsocketServer::WebsocketServerThread(std::shared_ptr<seasocks::Server> s)
 {
   s->addPageHandler(std::make_shared<MyAuthHandler>());
-  s->addWebSocketHandler("/chat", std::make_shared<Handler>());
+  s->addWebSocketHandler("/chat", std::make_shared<WebsocketHandler>());
   s->serve("/home/franku/01-prj/git/seasocks/src/ws_chatroom_web", 9000);
 }
+
+} /* namespace directordaemon */

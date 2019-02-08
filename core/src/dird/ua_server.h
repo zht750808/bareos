@@ -24,6 +24,8 @@
 
 namespace directordaemon {
 
+class UaContext;
+
 void *HandleUserAgentClientRequest(BareosSocket *user);
 UaContext *new_ua_context(JobControlRecord *jcr);
 JobControlRecord *new_control_jcr(const char *base_name, int job_type);

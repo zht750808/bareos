@@ -484,11 +484,11 @@ bool Do_a_command(UaContext *ua)
          /*
           * Check if command permitted, but "quit" and "whoami" is always OK
           */
-         if (!bstrcmp(ua->argk[0], NT_("quit")) &&
-             !bstrcmp(ua->argk[0], NT_("whoami")) &&
-             !ua->AclAccessOk(Command_ACL, ua->argk[0], true)) {
-            break;
-         }
+//         if (!bstrcmp(ua->argk[0], NT_("quit")) &&
+//             !bstrcmp(ua->argk[0], NT_("whoami")) &&
+//             !ua->AclAccessOk(Command_ACL, ua->argk[0], true)) {
+//            break;
+//         }
 
          /*
           * Check if this command is authorized in RunScript

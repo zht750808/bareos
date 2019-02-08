@@ -90,7 +90,8 @@ static char *runjob = NULL;
 static bool background = true;
 static bool test_config = false;
 static alist *reload_table = NULL;
-static std::unique_ptr<WebsocketServer> websocketserver;
+
+std::unique_ptr<WebsocketServer> websocketserver;
 
 /* Globals Imported */
 extern ResourceItem job_items[];

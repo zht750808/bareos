@@ -27,18 +27,22 @@
 #include <memory>
 #include <thread>
 
+namespace directordaemon {
+
 class WebsocketServer {
  public:
   explicit WebsocketServer();
 
   bool Start();
   void Stop();
+  std::shared_ptr<seasocks::Server> server_;
 
  private:
   std::unique_ptr<std::thread> server_thread_;
-  std::shared_ptr<seasocks::Server> server_;
 
   static void WebsocketServerThread(std::shared_ptr<seasocks::Server> server);
 };
+
+} /* namespace directordaemon */
 
 #endif /* BAREOS_DIRD_WEBSOCKETSSERVER_H_ */
