@@ -534,8 +534,8 @@ Overview of the settings in the |bareosWebui| :file:`directors.ini` file
 
    Directive            , Type    ,  Default value , Remark   , Description
    tls_verify_peer      , boolean ,  false         , Optional , TLS verif peer
-   server_can_do_tls    , boolean ,  false         , Required , Server can do TLS
-   server_requires_tls  , boolean ,  false         , Required , Server requires TLS
+   server_can_do_tls    , boolean ,  false         , Required , Server (|dir|) can do TLS
+   server_requires_tls  , boolean ,  false         , Required , Server (|dir|) requires TLS
    client_can_do_tls    , boolean ,  false         , Required , Client can do TLS
    client_requires_tls  , boolean ,  false         , Required , Client requires TLS
    ca_file              , string  ,                , Required , Certificate authority file
