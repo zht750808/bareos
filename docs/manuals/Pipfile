@@ -1,0 +1,20 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+
+[packages]
+sphinx = "*"
+sphinx-issues = "*"
+sphinxcontrib-actdiag = "*"
+sphinxcontrib-blockdiag = "*"
+sphinxcontrib-nwdiag = "*"
+sphinxcontrib-plantuml = "*"
+sphinxcontrib-seqdiag = "*"
+sphinx-csv-filter = "*"
+sphinx-rtd-theme = "*"
+
+[requires]
+python_version = "3.7"
