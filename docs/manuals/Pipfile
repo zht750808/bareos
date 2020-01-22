@@ -15,6 +15,7 @@ sphinxcontrib-plantuml = "*"
 sphinxcontrib-seqdiag = "*"
 sphinx-csv-filter = "*"
 sphinx-rtd-theme = "*"
+sphinx-versions = "*"
 
 [requires]
-python_version = "3.7"
+python_version = "3.5"
