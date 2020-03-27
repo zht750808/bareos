@@ -153,8 +153,28 @@ class BareosFdPluginLocalFileset(
         file_to_backup = self.files_to_backup.pop()
         bareosfd.DebugMessage(context, 100, "file: " + file_to_backup + "\n")
 
-        statp = bareosfd.StatPacket()
-        savepkt.statp = statp
+        mystatp = bareosfd.StatPacket()
+        statp = os.stat(file_to_backup)
+        # As of Bareos 19.2.7 attribute names in bareosfd.StatPacket differ from os.stat
+        # In this case we have to translate names
+        # For future releases consistent names are planned, allowing to assign the
+        # complete stat object in one rush
+        if hasattr (mystatp, 'st_uid'):
+            mystatp = statp
+        else:
+            mystatp.mode = statp.st_mode
+            mystatp.ino = statp.st_ino
+            mystatp.dev = statp.st_dev
+            mystatp.nlink = statp.st_nlink
+            mystatp.uid = statp.st_uid
+            mystatp.gid = statp.st_gid
+            mystatp.size = statp.st_size
+            mystatp.atime = statp.st_atime
+            mystatp.mtime = statp.st_mtime
+            mystatp.ctime = statp.st_ctime
+        savepkt.statp = mystatp
+        bareosfd.DebugMessage(context, 150, "file statpx " + str(savepkt.statp) + "\n")
+
         savepkt.fname = file_to_backup
         savepkt.type = bFileType["FT_REG"]
 
@@ -164,6 +184,16 @@ class BareosFdPluginLocalFileset(
             "Starting backup of %s\n" % (file_to_backup),
         )
         return bRCs["bRC_OK"]
+
+    def set_file_attributes(self, context, restorepkt):
+        file_name = restorepkt.ofname
+        file_attr = restorepkt.statp
+        bareosfd.DebugMessage(context, 150, "Restore file " + file_name + " with stat " + str(file_attr) + "\n")
+        os.chown (file_name, file_attr.uid, file_attr.gid)
+        os.chmod (file_name, file_attr.mode)
+        os.utime (file_name, (file_attr.atime, file_attr.mtime))
+        return bRCs["bRC_OK"]
+
 
     def end_backup_file(self, context):
         """
