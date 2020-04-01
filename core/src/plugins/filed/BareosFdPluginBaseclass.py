@@ -58,6 +58,7 @@ class BareosFdPluginBaseclass(object):
         self.jobName = bareosfd.GetValue(context, bVariable["bVarJobName"])
         self.workingdir = bareosfd.GetValue(context, bVariable["bVarWorkingDir"])
         self.FNAME = "undef"
+        self.filetype = "undef"
         self.file = None
         bareosfd.DebugMessage(
             context, 100, "FDName = %s - BareosFdPluginBaseclass\n" % (self.fdname)
@@ -136,13 +137,41 @@ class BareosFdPluginBaseclass(object):
         return bRCs["bRC_OK"]
 
     def plugin_io(self, context, IOP):
+        '''
+        Basic IO operations. Some tweaks here: IOP.fname is only set on file-open
+        We need to capture it on open and keep it for the remaining procedures
+        '''
         bareosfd.DebugMessage(
-            context, 100, "plugin_io called with function %s\n" % (IOP.func)
+            context, 100, "plugin_io called with function %s filename %s\n" % (IOP.func, IOP.fname)
         )
-        bareosfd.DebugMessage(context, 100, "FNAME is set to %s\n" % (self.FNAME))
+        bareosfd.DebugMessage(context, 100, "self.FNAME is set to %s\n" % (self.FNAME))
 
         if IOP.func == bIOPS["IO_OPEN"]:
             self.FNAME = IOP.fname
+            if os.path.isdir (self.FNAME):
+                bareosfd.DebugMessage(context, 100, "%s is a directory\n" % (IOP.fname))
+                self.fileType = "FT_DIR"
+                bareosfd.DebugMessage(
+                    context,
+                    100,
+                    "Did not open file %s of type %s\n" % (self.FNAME, self.fileType),
+                )
+                return bRCs["bRC_OK"]
+            elif os.path.islink (self.FNAME):
+                self.fileType = "FT_LNK"
+                bareosfd.DebugMessage(
+                    context,
+                    100,
+                    "Did not open file %s of type %s\n" % (self.FNAME, self.fileType),
+                )
+                return bRCs["bRC_OK"]
+            else:
+                self.fileType = "FT_REG"
+                bareosfd.DebugMessage(
+                    context,
+                    150,
+                    "file %s has type %s - trying to open it\n" % (self.FNAME, self.fileType),
+                )
             try:
                 if IOP.flags & (os.O_CREAT | os.O_WRONLY):
                     bareosfd.DebugMessage(
@@ -171,24 +200,34 @@ class BareosFdPluginBaseclass(object):
             except:
                 IOP.status = -1
                 return bRCs["bRC_Error"]
-
             return bRCs["bRC_OK"]
 
         elif IOP.func == bIOPS["IO_CLOSE"]:
             bareosfd.DebugMessage(context, 100, "Closing file " + "\n")
-            self.file.close()
+            if self.fileType == "FT_REG":
+                self.file.close()
             return bRCs["bRC_OK"]
 
         elif IOP.func == bIOPS["IO_SEEK"]:
             return bRCs["bRC_OK"]
 
         elif IOP.func == bIOPS["IO_READ"]:
-            bareosfd.DebugMessage(
-                context, 200, "Reading %d from file %s\n" % (IOP.count, self.FNAME)
-            )
-            IOP.buf = bytearray(IOP.count)
-            IOP.status = self.file.readinto(IOP.buf)
-            IOP.io_errno = 0
+            if self.fileType == "FT_REG":
+                bareosfd.DebugMessage(
+                    context, 200, "Reading %d from file %s\n" % (IOP.count, self.FNAME)
+                )
+                IOP.buf = bytearray(IOP.count)
+                IOP.status = self.file.readinto(IOP.buf)
+                IOP.io_errno = 0
+            else:
+                bareosfd.DebugMessage(
+                            context,
+                            100,
+                            "Did not read from file %s of type %s\n" % (self.FNAME, self.fileType),
+                        )
+                IOP.buf = bytearray()
+                IOP.status = 0
+                IOP.io_errno = 0
             return bRCs["bRC_OK"]
 
         elif IOP.func == bIOPS["IO_WRITE"]:
@@ -205,22 +244,24 @@ class BareosFdPluginBaseclass(object):
             bareosfd.DebugMessage(
                 context, 100, "handle_plugin_event called with bEventJobEnd\n"
             )
+            return self.end_job(context)
 
         elif event == bEventType["bEventEndBackupJob"]:
             bareosfd.DebugMessage(
                 context, 100, "handle_plugin_event called with bEventEndBackupJob\n"
             )
+            return self.end_backup_job(context)
 
         elif event == bEventType["bEventEndFileSet"]:
             bareosfd.DebugMessage(
                 context, 100, "handle_plugin_event called with bEventEndFileSet\n"
             )
+            return self.end_fileset(context)
 
         elif event == bEventType["bEventStartBackupJob"]:
             bareosfd.DebugMessage(
                 context, 100, "handle_plugin_event() called with bEventStartBackupJob\n"
             )
-
             return self.start_backup_job(context)
 
         elif event == bEventType["bEventStartRestoreJob"]:
@@ -229,15 +270,14 @@ class BareosFdPluginBaseclass(object):
                 100,
                 "handle_plugin_event() called with bEventStartRestoreJob\n",
             )
-
             return self.start_restore_job(context)
 
         else:
             bareosfd.DebugMessage(
                 context, 100, "handle_plugin_event called with event %s\n" % (event)
             )
-
         return bRCs["bRC_OK"]
+
 
     def start_backup_job(self, context):
         """
@@ -245,6 +285,23 @@ class BareosFdPluginBaseclass(object):
         Overload this to arrange whatever you have to do at this time.
         """
         return bRCs["bRC_OK"]
+
+
+    def end_job(self, context):
+        """
+        Called if job ends regularyly (not for cancelled jobs)
+        Overload this to arrange whatever you have to do at this time.
+        """
+        return bRCs["bRC_OK"]
+
+
+    def end_backup_job(self, context):
+        """
+        Called if backup job ends, before ClientAfterJob 
+        Overload this to arrange whatever you have to do at this time.
+        """
+        return bRCs["bRC_OK"]
+
 
     def start_backup_file(self, context, savepkt):
         """
@@ -259,6 +316,14 @@ class BareosFdPluginBaseclass(object):
             context, 100, "end_backup_file() entry point in Python called\n"
         )
         return bRCs["bRC_OK"]
+
+
+    def end_fileset(self, context):
+        bareosfd.DebugMessage(
+            context, 100, "end_fileset() entry point in Python called\n"
+        )
+        return bRCs["bRC_OK"]
+
 
     def start_restore_job(self, context):
         """
@@ -299,7 +364,7 @@ class BareosFdPluginBaseclass(object):
             "create_file() entry point in Python called with %s\n" % (restorepkt),
         )
         FNAME = restorepkt.ofname
-        dirname = os.path.dirname(FNAME)
+        dirname = os.path.dirname(FNAME.rstrip('/'))
         if not os.path.exists(dirname):
             bareosfd.DebugMessage(
                 context, 200, "Directory %s does not exist, creating it now\n" % dirname
@@ -312,8 +377,15 @@ class BareosFdPluginBaseclass(object):
         # if it's a directory
         if restorepkt.type == bFileType["FT_REG"]:
             open(FNAME, "wb").close()
-            restorepkt.create_status = bCFs["CF_EXTRACT"]
+        elif restorepkt.type == bFileType["FT_LNK"]:
+            if not os.path.exists(FNAME.rstrip('/')):
+                os.symlink(restorepkt.olname, FNAME.rstrip('/'))
+        elif restorepkt.type == bFileType["FT_DIREND"]:
+            if not os.path.exists(FNAME):
+                os.makedirs(FNAME)
+        restorepkt.create_status = bCFs["CF_EXTRACT"]
         return bRCs["bRC_OK"]
+
 
     def set_file_attributes(self, context, restorepkt):
         bareosfd.DebugMessage(
