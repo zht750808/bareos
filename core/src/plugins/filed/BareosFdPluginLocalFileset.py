@@ -203,7 +203,7 @@ class BareosFdPluginLocalFileset(
         elif os.path.isdir(file_to_backup):
             savepkt.type = bFileType["FT_DIREND"]
             savepkt.link = file_to_backup
-            bareosfd.DebugMessage(context, 150, "file type is: FT_DIREND\n")
+            bareosfd.DebugMessage(context, 150, "file %s type is: FT_DIREND\n" % file_to_backup)
         else:
             bareosfd.JobMessage(
                 context,
