@@ -84,7 +84,6 @@ class BareosFdPluginLocalFileset(
         else:
             return True
 
-
     def start_backup_job(self, context):
         """
         At this point, plugin options were passed and checked already.
@@ -125,7 +124,7 @@ class BareosFdPluginLocalFileset(
             if os.path.isdir(listItem):
                 fullDirName = listItem
                 # FD requires / at the end of a directory name
-                if not fullDirName.endswith('/'):
+                if not fullDirName.endswith("/"):
                     fullDirName += "/"
                 self.files_to_backup.append(fullDirName)
                 for topdir, dirNames, fileNames in os.walk(listItem):
@@ -141,9 +140,7 @@ class BareosFdPluginLocalFileset(
                         fullDirName = os.path.join(topdir, dirName) + "/"
                         self.files_to_backup.append(fullDirName)
         bareosfd.DebugMessage(
-            context,
-            150,
-            "Filelist: %s\n" % (self.files_to_backup),
+            context, 150, "Filelist: %s\n" % (self.files_to_backup),
         )
 
         if not self.files_to_backup:
@@ -155,7 +152,6 @@ class BareosFdPluginLocalFileset(
             return bRCs["bRC_Error"]
         else:
             return bRCs["bRC_OK"]
-
 
     def start_backup_file(self, context, savepkt):
         """
@@ -176,7 +172,7 @@ class BareosFdPluginLocalFileset(
         # In this case we have to translate names
         # For future releases consistent names are planned, allowing to assign the
         # complete stat object in one rush
-        if hasattr (mystatp, 'st_uid'):
+        if hasattr(mystatp, "st_uid"):
             mystatp = statp
         else:
             mystatp.mode = statp.st_mode
@@ -189,13 +185,13 @@ class BareosFdPluginLocalFileset(
             mystatp.atime = statp.st_atime
             mystatp.mtime = statp.st_mtime
             mystatp.ctime = statp.st_ctime
-        savepkt.fname = file_to_backup        
+        savepkt.fname = file_to_backup
         # os.islink will detect links to directories only when
         # there is no trailing slash - we need to perform checks
         # on the stripped name but use it with trailing / for the backup itself
-        if os.path.islink(file_to_backup.rstrip('/')):
+        if os.path.islink(file_to_backup.rstrip("/")):
             savepkt.type = bFileType["FT_LNK"]
-            savepkt.link = os.readlink(file_to_backup.rstrip('/'))
+            savepkt.link = os.readlink(file_to_backup.rstrip("/"))
             bareosfd.DebugMessage(context, 150, "file type is: FT_LNK\n")
         elif os.path.isfile(file_to_backup):
             savepkt.type = bFileType["FT_REG"]
@@ -203,7 +199,9 @@ class BareosFdPluginLocalFileset(
         elif os.path.isdir(file_to_backup):
             savepkt.type = bFileType["FT_DIREND"]
             savepkt.link = file_to_backup
-            bareosfd.DebugMessage(context, 150, "file %s type is: FT_DIREND\n" % file_to_backup)
+            bareosfd.DebugMessage(
+                context, 150, "file %s type is: FT_DIREND\n" % file_to_backup
+            )
         else:
             bareosfd.JobMessage(
                 context,
@@ -211,12 +209,11 @@ class BareosFdPluginLocalFileset(
                 "File %s of unknown type" % (file_to_backup),
             )
             return bRCs["bRC_Skip"]
-            
+
         savepkt.statp = mystatp
         bareosfd.DebugMessage(context, 150, "file statpx " + str(savepkt.statp) + "\n")
 
         return bRCs["bRC_OK"]
-
 
     def set_file_attributes(self, context, restorepkt):
         # Python attribute setting does not work properly with links
@@ -224,12 +221,15 @@ class BareosFdPluginLocalFileset(
             return bRCs["bRC_OK"]
         file_name = restorepkt.ofname
         file_attr = restorepkt.statp
-        bareosfd.DebugMessage(context, 150, "Restore file " + file_name + " with stat " + str(file_attr) + "\n")
-        os.chown (file_name, file_attr.uid, file_attr.gid)
-        os.chmod (file_name, file_attr.mode)
-        os.utime (file_name, (file_attr.atime, file_attr.mtime))
+        bareosfd.DebugMessage(
+            context,
+            150,
+            "Restore file " + file_name + " with stat " + str(file_attr) + "\n",
+        )
+        os.chown(file_name, file_attr.uid, file_attr.gid)
+        os.chmod(file_name, file_attr.mode)
+        os.utime(file_name, (file_attr.atime, file_attr.mtime))
         return bRCs["bRC_OK"]
-
 
     def end_backup_file(self, context):
         """
