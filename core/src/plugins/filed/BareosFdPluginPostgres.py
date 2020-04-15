@@ -118,8 +118,7 @@ class BareosFdPluginPostgres(
         bareosfd.DebugMessage(
             context, 100, "start_backup_job in PostgresPlugin called",
         )
-
-        # If level is not Full, we only backup newer WAL files
+                # If level is not Full, we only backup newer WAL files
         if chr(self.level) == "F":
             startDir = self.options["postgresDataDir"]
             self.files_to_backup.append(startDir)
@@ -127,8 +126,11 @@ class BareosFdPluginPostgres(
                 context, 100, "dataDir: %s\n" % self.options["postgresDataDir"],
             )
         else:
+            # For Full the Restore object comes after DB connection close
+            self.files_to_backup.append("ROP")
+            # With incremental / diff jobs we just backup new WAL files
             startDir = self.options["walArchive"]
-            # TODO: optionally issue a SELECT pg_switch_wal(); here
+            # get current Log Sequence Number (LSN)
             self.dbCursor.execute("SELECT pg_current_wal_lsn()")
             currentLSN = self.dbCursor.fetchone()[0].zfill(17)
             bareosfd.DebugMessage(
@@ -136,27 +138,26 @@ class BareosFdPluginPostgres(
                 100,
                 "Current LSN %s, last LSN: %s\n" % (currentLSN, self.lastLSN),
             )
-            if currentLSN > self.lastLSN:
-                # we force to switch the WAL
+            if currentLSN > self.lastLSN and self.switchWal:
+                # Let Postgres write latest transaction into a new WAL file now
                 self.dbCursor = self.dbCursor.execute("SELECT pg_switch_wal()")
                 time.sleep(10)
-                # self.lastBackupStopTime = time.time()
                 self.lastLSN = currentLSN
             else:
                 # Nothing has changed since last backup - only send ROP this time
-                self.files_to_backup.append("ROP")
                 return bRCs["bRC_OK"]
 
-        # Gather files from Postgres data dir (or walArchive for incr/diff jobs)
+        # Gather files from startDir (Postgres data dir or walArchive for incr/diff jobs)
         for fileName in os.listdir(startDir):
             fullName = os.path.join(startDir, fileName)
+            # We need a trailing '/' for directories
             if os.path.isdir(fullName) and not fullName.endswith("/"):
                 fullName += "/"
                 bareosfd.DebugMessage(
                     context, 100, "fullName: %s\n" % fullName,
                 )
             # Usually Bareos takes care about timestamps when doing incremental backups
-            # but here we have to compare against fullBackupPostgres timestamp
+            # but here we have to compare against last BackupPostgres timestamp
             mTime = os.stat(fullName).st_mtime
             bareosfd.DebugMessage(
                 context,
@@ -180,10 +181,11 @@ class BareosFdPluginPostgres(
                             fullDirName = os.path.join(topdir, dirName) + "/"
                             self.files_to_backup.append(fullDirName)
 
-        # If level is not Full, we add the restore object
-        #
+        # If level is not Full, we are done here and set the new
+        # lastBackupStopTime as reference for future jobs
+        # Will be written into the Restore Object
         if not chr(self.level) == "F":
-            self.files_to_backup.append("ROP")
+            self.lastBackupStopTime = int(time.time())
             return bRCs["bRC_OK"]
 
         # For Full we check for a running job and tell Postgres that
@@ -204,7 +206,7 @@ class BareosFdPluginPostgres(
         bareosfd.DebugMessage(
             context, 100, "Send 'SELECT pg_start_backup' to Postgres\n"
         )
-        # TODO: error handling
+        # We tell Postgres that we want to start to backup file now
         self.dbCursor.execute("SELECT pg_start_backup('%s');" % self.backupLabelString)
         results = self.dbCursor.fetchall()
         bareosfd.DebugMessage(context, 150, "Start response: %s\n" % str(results))
@@ -216,7 +218,6 @@ class BareosFdPluginPostgres(
         bareosfd.DebugMessage(
             context, 150, "Filelist: %s\n" % (self.files_to_backup),
         )
-
         self.PostgressFullBackupRunning = True
         return bRCs["bRC_OK"]
 
@@ -247,12 +248,13 @@ class BareosFdPluginPostgres(
             bareosfd.DebugMessage(context, 100, "No files to backup\n")
             return bRCs["bRC_Skip"]
 
-        # we plan to have more than 1 special files
+        # Plain files are handled by super class
         if self.files_to_backup[-1] not in ["ROP"]:
             return super(BareosFdPluginPostgres, self).start_backup_file(
                 context, savepkt
             )
 
+        # Here we create the restore object
         self.file_to_backup = self.files_to_backup.pop()
         bareosfd.DebugMessage(context, 100, "file: " + self.file_to_backup + "\n")
         savepkt.statp = StatPacket()
@@ -301,7 +303,6 @@ class BareosFdPluginPostgres(
                 "Got lastLSN %s from restore object of job %d\n"
                 % (self.lastLSN, ROP.jobid),
             )
-
         return bRCs["bRC_OK"]
 
     def closeDbConnection(self, context):
@@ -353,8 +354,6 @@ class BareosFdPluginPostgres(
                 self.files_to_backup.append(fullPath)
 
         if self.files_to_backup:
-            # we have WAL files and have to keep the Postgres Backup Stoptime as restore object
-            self.files_to_backup.append("ROP")
             return bRCs["bRC_More"]
         else:
             return bRCs["bRC_OK"]
@@ -372,6 +371,8 @@ class BareosFdPluginPostgres(
         else:
             if self.PostgressFullBackupRunning:
                 self.closeDbConnection(context)
+                # Now we can also create the Restore object with the right timestamp
+                self.files_to_backup.append("ROP")
                 return self.checkForWalFiles(context)
             else:
                 return bRCs["bRC_OK"]
