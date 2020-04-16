@@ -56,9 +56,9 @@ class BareosFdPluginPostgres(
         )
         # Last argument of super constructor is a list of mandatory arguments
         super(BareosFdPluginPostgres, self).__init__(
-            context, plugindef, ["postgresDataDir", "walArchive"]
+            context, plugindef, ["walArchive"]
         )
-        self.ignoreSubdirs = ["pg_wal", "pg_log", "base"]
+        self.ignoreSubdirs = ["pg_wal", "pg_log", "pg_xlog"]
 
         self.dbCon = None
         self.dbCursor = None
@@ -79,6 +79,13 @@ class BareosFdPluginPostgres(
         self.row_rop_raw = None
         # Dictionary to store passed restore object data
         self.rop_data = {}
+        # we need our timezone information for some timestamp comparisons
+        # this one respects daylight saving timezones
+        self.tzOffset = -(
+            time.altzone
+            if (time.daylight and time.localtime().tm_isdst)
+            else time.timezone
+        )
 
     def check_options(self, context, mandatory_options=None):
         """
@@ -91,23 +98,23 @@ class BareosFdPluginPostgres(
             return result
         if not self.options["postgresDataDir"].endswith("/"):
             self.options["postgresDataDir"] += "/"
+        self.labelFileName = self.options["postgresDataDir"] + "/backup_label"
         if not self.options["walArchive"].endswith("/"):
             self.options["walArchive"] += "/"
         if "ignoreSubdirs" in self.options:
             self.ignoreSubdirs = self.options["ignoreSubdirs"]
+        if "dbname" in self.options:
+            self.dbname = self.options["dbname"]
+        else:
+            self.dbname = "postgres"
+        if "dbuser" in self.options:
+            self.dbuser = self.options["dbuser"]
+        else:
+            self.dbuser = "root"
         if not "switchWal" in self.options:
             self.switchWal = True
         else:
             self.switchWal = self.options["switchWal"].lower() == "true"
-        try:
-            bareosfd.DebugMessage(context, 100, "Trying to connect to Postgres\n")
-            self.dbCon = psycopg2.connect("dbname=backuptest user=root")
-            self.dbCursor = self.dbCon.cursor()
-        except:
-            bareosfd.JobMessage(
-                context, bJobMessageType["M_ERROR"], "Could not connect to database\n",
-            )
-            return bRCs["bRC_Error"]
         return bRCs["bRC_OK"]
 
     def start_backup_job(self, context):
@@ -118,7 +125,32 @@ class BareosFdPluginPostgres(
         bareosfd.DebugMessage(
             context, 100, "start_backup_job in PostgresPlugin called",
         )
-                # If level is not Full, we only backup newer WAL files
+        try:
+            self.dbCon = psycopg2.connect(
+                "dbname=%s user=%s" % (self.dbname, self.dbuser)
+            )
+            self.dbCursor = self.dbCon.cursor()
+            self.dbCursor.execute("SELECT current_setting('server_version_num')")
+            self.pgVersion = int(self.dbCursor.fetchone()[0])
+            #bareosfd.DebugMessage(
+            #    context, 1, "Connected to Postgres version %d\n" % self.pgVersion,
+            #)
+            ## WARNING: JobMessages cause fatal errors at this stage
+            JobMessage(
+               context,
+               bJobMessageType["M_INFO"],
+               "Connected to Postgres version %d\n"
+               % (self.pgVersion),
+            )
+        except:
+            bareosfd.JobMessage(
+                context,
+                bJobMessageType["M_FATAL"],
+                "Could not connect to database %s, user %s\n"
+                % (self.dbname, self.dbuser),
+            )
+            return bRCs["bRC_Error"]
+        # If level is not Full, we only backup newer WAL files
         if chr(self.level) == "F":
             startDir = self.options["postgresDataDir"]
             self.files_to_backup.append(startDir)
@@ -131,21 +163,47 @@ class BareosFdPluginPostgres(
             # With incremental / diff jobs we just backup new WAL files
             startDir = self.options["walArchive"]
             # get current Log Sequence Number (LSN)
-            self.dbCursor.execute("SELECT pg_current_wal_lsn()")
-            currentLSN = self.dbCursor.fetchone()[0].zfill(17)
-            bareosfd.DebugMessage(
-                context,
-                100,
-                "Current LSN %s, last LSN: %s\n" % (currentLSN, self.lastLSN),
-            )
-            if currentLSN > self.lastLSN and self.switchWal:
-                # Let Postgres write latest transaction into a new WAL file now
-                self.dbCursor = self.dbCursor.execute("SELECT pg_switch_wal()")
-                time.sleep(10)
-                self.lastLSN = currentLSN
+            # PG8: not supported
+            # PG9: pg_get_current_xlog_location
+            # PG10: pg_current_wal_lsn
+            pgMajorVersion = self.pgVersion // 10000
+            if pgMajorVersion >= 10:
+                getLsnStmt = "SELECT pg_current_wal_lsn()"
+                switchLsnStmt = "SELECT pg_switch_wal()"
+            elif pgMajorVersion >= 9:
+                getLsnStmt = "SELECT pg_current_xlog_location()"
+                switchLsnStmt = "SELECT pg_switch_xlog()"
+            if pgMajorVersion < 9:
+                bareosfd.JobMessage(
+                    context,
+                    bJobMessageType["M_INFO"],
+                    "WAL switching not supported on Postgres Version < 9\n",
+                )
             else:
-                # Nothing has changed since last backup - only send ROP this time
-                return bRCs["bRC_OK"]
+                self.dbCursor.execute(getLsnStmt)
+                currentLSN = self.dbCursor.fetchone()[0].zfill(17)
+                bareosfd.DebugMessage(
+                    context,
+                    100,
+                    "Current LSN %s, last LSN: %s\n" % (currentLSN, self.lastLSN),
+                )
+                if currentLSN > self.lastLSN and self.switchWal:
+                    # Let Postgres write latest transaction into a new WAL file now
+                    self.dbCursor.execute(switchLsnStmt)
+                    # reread LSN as it changes after WAL switching
+                    self.dbCursor.execute(getLsnStmt)
+                    currentLSN = self.dbCursor.fetchone()[0].zfill(17)
+                    self.lastLSN = currentLSN
+                    # wait some seconds to make sure WAL file gets written
+                    time.sleep(10)
+                else:
+                    # Nothing has changed since last backup - only send ROP this time
+                    bareosfd.JobMessage(
+                        context,
+                        bJobMessageType["M_INFO"],
+                        "Same LSN %s as last time - nothing to do\n" % currentLSN,
+                    )
+                    return bRCs["bRC_OK"]
 
         # Gather files from startDir (Postgres data dir or walArchive for incr/diff jobs)
         for fileName in os.listdir(startDir):
@@ -190,9 +248,7 @@ class BareosFdPluginPostgres(
 
         # For Full we check for a running job and tell Postgres that
         # we want to backup the DB files now.
-        # Check for running Postgres Backup Job
-        self.dbCursor.execute("SELECT pg_is_in_backup()")
-        if self.dbCursor.fetchone()[0]:
+        if os.path.exists(self.labelFileName):
             self.parseBackupLabelFile(context)
             bareosfd.JobMessage(
                 context,
@@ -207,14 +263,16 @@ class BareosFdPluginPostgres(
             context, 100, "Send 'SELECT pg_start_backup' to Postgres\n"
         )
         # We tell Postgres that we want to start to backup file now
+        self.backupStartTime = datetime.datetime.now(
+            tz=dateutil.tz.tzoffset(None, self.tzOffset)
+        )
         self.dbCursor.execute("SELECT pg_start_backup('%s');" % self.backupLabelString)
         results = self.dbCursor.fetchall()
         bareosfd.DebugMessage(context, 150, "Start response: %s\n" % str(results))
-        labelFileName = self.options["postgresDataDir"] + "/backup_label"
         bareosfd.DebugMessage(
-            context, 150, "Adding label file %s to fileset\n" % labelFileName
+            context, 150, "Adding label file %s to fileset\n" % self.labelFileName
         )
-        self.files_to_backup.append(labelFileName)
+        self.files_to_backup.append(self.labelFileName)
         bareosfd.DebugMessage(
             context, 150, "Filelist: %s\n" % (self.files_to_backup),
         )
@@ -222,14 +280,13 @@ class BareosFdPluginPostgres(
         return bRCs["bRC_OK"]
 
     def parseBackupLabelFile(self, context):
-        labelFileName = self.options["postgresDataDir"] + "/backup_label"
         try:
-            labelFile = open(labelFileName, "rb")
+            labelFile = open(self.labelFileName, "rb")
         except:
             bareosfd.JobMessage(
                 context,
                 bJobMessageType["M_WARNING"],
-                "Could not open Label File %s" % (labelFileName),
+                "Could not open Label File %s" % (self.labelFileName),
             )
 
         for labelItem in labelFile.read().splitlines():
@@ -309,8 +366,8 @@ class BareosFdPluginPostgres(
         # TODO Error Handling
         # Get Backup Start Date
         self.parseBackupLabelFile(context)
-        self.dbCursor.execute("SELECT pg_backup_start_time()")
-        self.backupStartTime = self.dbCursor.fetchone()[0]
+        # self.dbCursor.execute("SELECT pg_backup_start_time()")
+        # self.backupStartTime = self.dbCursor.fetchone()[0]
         # Tell Postgres we are done
         self.dbCursor.execute("SELECT pg_stop_backup();")
         self.lastLSN = self.dbCursor.fetchone()[0].zfill(17)
@@ -333,11 +390,6 @@ class BareosFdPluginPostgres(
         """
         # We have to add local timezone to the file's timestamp in order
         # to compare them with the backup starttime, which has a timezone
-        tzOffset = -(
-            time.altzone
-            if (time.daylight and time.localtime().tm_isdst)
-            else time.timezone
-        )
         walArchive = self.options["walArchive"]
         self.files_to_backup.append(walArchive)
         for fileName in os.listdir(walArchive):
@@ -345,7 +397,7 @@ class BareosFdPluginPostgres(
             st = os.stat(fullPath)
             fileMtime = datetime.datetime.fromtimestamp(st.st_mtime)
             if (
-                fileMtime.replace(tzinfo=dateutil.tz.tzoffset(None, tzOffset))
+                fileMtime.replace(tzinfo=dateutil.tz.tzoffset(None, self.tzOffset))
                 > self.backupStartTime
             ):
                 bareosfd.DebugMessage(

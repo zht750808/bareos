@@ -232,10 +232,10 @@ class BareosFdPluginBaseclass(object):
         """
         bareosfd.DebugMessage(
             context,
-            100,
+            250,
             "plugin_io called with function %s filename %s\n" % (IOP.func, IOP.fname),
         )
-        bareosfd.DebugMessage(context, 150, "self.FNAME is set to %s\n" % (self.FNAME))
+        bareosfd.DebugMessage(context, 250, "self.FNAME is set to %s\n" % (self.FNAME))
         if IOP.func == bIOPS["IO_OPEN"]:
             return self.plugin_io_open(context, IOP)
         elif IOP.func == bIOPS["IO_CLOSE"]:
