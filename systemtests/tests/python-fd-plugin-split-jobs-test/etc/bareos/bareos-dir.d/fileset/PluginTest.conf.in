@@ -5,6 +5,6 @@ FileSet {
     Options {
       signature = MD5
     }
-    Plugin = "python:module_path=@python_plugin_module_src_test_dir@:module_name=:bareos-fd-split-jobs.py:filename=@tmpdir@/file-list:parallelJobs=2"
+    Plugin = "python:module_path=@python_plugin_module_src_test_dir@:module_name=bareos-fd-split-jobs:filename=@tmpdir@/file-list:parallelJobs=2"
   }
 }

@@ -153,7 +153,8 @@ class BareosFdPluginSplitJobs(
             for listItem in config_file.read().splitlines():
                 self.files_to_backup.append(listItem)
             config_file.close()
-            # TODO: set SinceTime to lowValue (eventually set first line in jobFile)
+            # TODO: adapt this to sinceTime relevant for this job
+            bareosfd.SetValue(context,bVariable["bVarSinceTime"],1)
         # no job file found, check for meta file
         else:
             if os.path.exists(self.splitJobMetaFile):
@@ -171,6 +172,7 @@ class BareosFdPluginSplitJobs(
                     "splitJob: first Incr. after split cycle. Using SinceTime from meta-file %s\n" %maxTimestamp ,
                 )
                 # TODO Set SinceTime to maxTimestamp
+                bareosfd.SetValue(context,bVariable["bVarSinceTime"],int(float(maxTimestamp)))
                 # TODO Sanity check for orphaned jobs, redo unfinisched work
                 # Remove meta-File after backup, if job finishes regularly
                 self.removeMetaFile = True
