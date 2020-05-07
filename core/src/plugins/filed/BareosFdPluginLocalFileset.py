@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # BAREOS - Backup Archiving REcovery Open Sourced
 #
-# Copyright (C) 2014-2014 Bareos GmbH & Co. KG
+# Copyright (C) 2014-2020 Bareos GmbH & Co. KG
 #
 # This program is Free Software; you can redistribute it and/or
 # modify it under the terms of version three of the GNU Affero General Public
@@ -84,6 +84,15 @@ class BareosFdPluginLocalFileset(
         else:
             return True
 
+    def append_file_to_backup(self, context, filename):
+        """
+        Basically add filename to list of files to backup in
+        files_to_backup
+        Overload this, if you want to check for extra stuff
+        of do other things with files to backup
+        """
+        self.files_to_backup.append(filename)
+
     def start_backup_job(self, context):
         """
         At this point, plugin options were passed and checked already.
@@ -120,13 +129,13 @@ class BareosFdPluginLocalFileset(
             if os.path.isfile(listItem) and self.filename_is_allowed(
                 context, listItem, self.allow, self.deny
             ):
-                self.files_to_backup.append(listItem)
+                self.append_file_to_backup(context,listItem)
             if os.path.isdir(listItem):
                 fullDirName = listItem
                 # FD requires / at the end of a directory name
                 if not fullDirName.endswith("/"):
                     fullDirName += "/"
-                self.files_to_backup.append(fullDirName)
+                self.append_file_to_backup(context,fullDirName)
                 for topdir, dirNames, fileNames in os.walk(listItem):
                     for fileName in fileNames:
                         if self.filename_is_allowed(
@@ -135,10 +144,10 @@ class BareosFdPluginLocalFileset(
                             self.allow,
                             self.deny,
                         ):
-                            self.files_to_backup.append(os.path.join(topdir, fileName))
+                            self.append_file_to_backup(context,os.path.join(topdir, fileName))
                     for dirName in dirNames:
                         fullDirName = os.path.join(topdir, dirName) + "/"
-                        self.files_to_backup.append(fullDirName)
+                        self.append_file_to_backup(context, fullDirName)
         bareosfd.DebugMessage(
             context, 150, "Filelist: %s\n" % (self.files_to_backup),
         )
@@ -218,6 +227,7 @@ class BareosFdPluginLocalFileset(
             return bRCs["bRC_Skip"]
 
         savepkt.statp = mystatp
+        savepkt.save_time = 1056978133
         bareosfd.DebugMessage(context, 150, "file statpx " + str(savepkt.statp) + "\n")
 
         return bRCs["bRC_OK"]
