@@ -28,7 +28,7 @@ import bareosfd
 from bareos_fd_consts import bVariable, bFileType, bRCs, bCFs
 from bareos_fd_consts import bEventType, bIOPS, bJobMessageType
 import os
-
+import stat
 
 class BareosFdPluginBaseclass(object):
 
@@ -151,6 +151,14 @@ class BareosFdPluginBaseclass(object):
                 "Did not open file %s of type %s\n" % (self.FNAME, self.fileType),
             )
             return bRCs["bRC_OK"]
+        #elif stat.S_ISFIFO(os.stat(self.FNAME).st_mode):
+        #    self.fileType = "FT_FIFO"
+        #    bareosfd.DebugMessage(
+        #        context,
+        #        100,
+        #        "Did not open file %s of type %s\n" % (self.FNAME, self.fileType),
+        #    )
+        #    return bRCs["bRC_OK"]
         else:
             self.fileType = "FT_REG"
             bareosfd.DebugMessage(

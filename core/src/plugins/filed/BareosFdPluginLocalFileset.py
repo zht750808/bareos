@@ -29,6 +29,7 @@ from bareos_fd_consts import bJobMessageType, bFileType, bRCs
 import os
 import re
 import BareosFdPluginBaseclass
+import stat
 
 
 class BareosFdPluginLocalFileset(
@@ -177,7 +178,10 @@ class BareosFdPluginLocalFileset(
 
         mystatp = bareosfd.StatPacket()
         try:
-            statp = os.stat(file_to_backup)
+            if os.path.islink(file_to_backup):
+                statp = os.lstat(file_to_backup)
+            else:
+                statp = os.stat(file_to_backup)
         except Exception as e:
             bareosfd.JobMessage(
                 context,
@@ -218,6 +222,9 @@ class BareosFdPluginLocalFileset(
             bareosfd.DebugMessage(
                 context, 150, "file %s type is: FT_DIREND\n" % file_to_backup
             )
+        elif stat.S_ISFIFO(os.stat(file_to_backup).st_mode):
+            savepkt.type = bFileType["FT_FIFO"]
+            bareosfd.DebugMessage(context, 150, "file type is: FT_FIFO\n")
         else:
             bareosfd.JobMessage(
                 context,
@@ -227,12 +234,14 @@ class BareosFdPluginLocalFileset(
             return bRCs["bRC_Skip"]
 
         savepkt.statp = mystatp
-        savepkt.save_time = 1056978133
         bareosfd.DebugMessage(context, 150, "file statpx " + str(savepkt.statp) + "\n")
 
         return bRCs["bRC_OK"]
 
     def set_file_attributes(self, context, restorepkt):
+        #restorepkt.create_status = bCFs["CF_CORE"]
+        #return bRCs["bRC_OK"]
+
         # Python attribute setting does not work properly with links
         if restorepkt.type == bFileType["FT_LNK"]:
             return bRCs["bRC_OK"]

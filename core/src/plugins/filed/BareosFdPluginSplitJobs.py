@@ -112,7 +112,11 @@ class BareosFdPluginSplitJobs(
         """
         We add timestamp and size information for sorting and slicing
         """
-        fileStat = os.stat(filename)        
+        if os.path.islink (filename):
+            fileStat = os.lstat(filename)
+        else:
+            fileStat = os.stat(filename)        
+        #self.preliminaryList.append([filename.encode('string_escape'),fileStat.st_mtime,fileStat.st_size])
         self.preliminaryList.append([filename,fileStat.st_mtime,fileStat.st_size])
         self.files_to_backup.append(filename)
 
@@ -157,7 +161,8 @@ class BareosFdPluginSplitJobs(
                 "splitJob: Reading information from file %s\n" %self.myJobFile,
             )
             for listItem in config_file.read().splitlines():
-                self.files_to_backup.append(listItem)
+                self.files_to_backup.append(listItem)                #self.files_to_backup.append(listItem.decode('string_escape'))
+
             config_file.close()
             # TODO: adapt this to sinceTime relevant for this job
             bareosfd.SetValue(context,bVariable["bVarSinceTime"],1)
