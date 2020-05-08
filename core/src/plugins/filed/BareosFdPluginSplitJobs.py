@@ -62,6 +62,12 @@ class BareosFdPluginSplitJobs(
         )
         # preliminary List, before slicing a tuple of
         # filename, mtime, filesize
+        self.sinceTime = bareosfd.GetValue(context, bVariable["bVarSinceTime"])
+        self.accurate_enabled = bareosfd.GetValue(context, bVariable["bVarAccurate"])
+        if self.accurate_enabled is not None and self.accurate_enabled != 0:
+            self.accurate_enabled = True
+            # Disable accurate for Full and split incrementals
+        bareosfd.SetValue(context, bVariable["bVarAccurate"], 0)
         self.preliminaryList = []
         # split for a part-job or regular for a regular incremental
         self.jobType = 'split'
@@ -90,14 +96,14 @@ class BareosFdPluginSplitJobs(
         if not result == bRCs["bRC_OK"]:
             return result
         # Accurate may cause problems with plugins
-        accurate_enabled = GetValue(context, bVariable["bVarAccurate"])
-        if accurate_enabled is not None and accurate_enabled != 0:
-            JobMessage(
-                context,
-                bJobMessageType["M_FATAL"],
-                "start_backup_job: Accurate backup not allowed please disable in Job\n",
-            )
-            return bRCs["bRC_Error"]
+        #accurate_enabled = GetValue(context, bVariable["bVarAccurate"])
+        #if accurate_enabled is not None and accurate_enabled != 0:
+        #    JobMessage(
+        #        context,
+        #        bJobMessageType["M_FATAL"],
+        #        "start_backup_job: Accurate backup not allowed please disable in Job\n",
+        #    )
+        #    return bRCs["bRC_Error"]
         if 'parallelJobs' in self.options:
             self.numParallelJobs = int(self.options['parallelJobs'])
         return bRCs["bRC_OK"]
@@ -178,14 +184,17 @@ class BareosFdPluginSplitJobs(
                 self.removeMetaFile = True
                 return False
             else:
-                # No JobDescription nor Meta File found
-                # We are just a regular Incremental job
                 bareosfd.JobMessage(
                     context,
                     bJobMessageType["M_INFO"],
                     "splitJob: no description nor meta data found. Regular Job.\n",
                 )
+                # No JobDescription nor Meta File found
+                # We are just a regular Incremental job
                 # use full file list and let FD do the rest
+                # Enable accurate if it was configured originally
+                if self.accurate_enabled:
+                    bareosfd.SetValue(context, bVariable["bVarAccurate"], 1)
                 return False
         return True
 
@@ -197,6 +206,7 @@ class BareosFdPluginSplitJobs(
         bareosfd.DebugMessage(
             context, 100, "start_backup_job in SplitJobsPlugin called",
         )
+        startTime = int(time.time())
         if chr(self.level) == "F":
             result = super(BareosFdPluginSplitJobs, self).start_backup_job(context)
             self.preliminaryList = sorted(self.preliminaryList,key=itemgetter(1))
@@ -204,6 +214,7 @@ class BareosFdPluginSplitJobs(
                 context, 150, "Preliminary list: %s" % (self.preliminaryList),
             )
             fileList = [i[0] for i in self.preliminaryList]
+            oneFile = fileList.pop(0)
             # create working dir
             if not os.path.exists(self.runningDir):
                 os.makedirs(self.runningDir)
@@ -218,13 +229,15 @@ class BareosFdPluginSplitJobs(
                 self.jobFile.write("\n".join(splitList))
                 self.jobFile.close()
             totalNumFiles = len(self.files_to_backup)
-            self.files_to_backup=[]
+            # Full backup must not be completely empty, needs at least one file
+            self.files_to_backup=[oneFile]
             # Create meta data file
             metaFile = open (self.splitJobMetaFile, "wb")
             metaFile.write ("[SplitJob]\n")
             metaFile.write ("FullJobId=%s\n" %self.jobId)
             metaFile.write ("FullJobName=%s\n" %self.jobName)
-            metaFile.write ("MaxTimestamp=%s\n" %self.preliminaryList[-1][1])
+            #metaFile.write ("MaxTimestamp=%s\n" %self.preliminaryList[-1][1])
+            metaFile.write ("MaxTimestamp=%d\n" %startTime)
             metaFile.write ("FileTotals=%d\n" %totalNumFiles)
             metaFile.write ("Chunks=%d\n" %self.numParallelJobs)
             metaFile.close()

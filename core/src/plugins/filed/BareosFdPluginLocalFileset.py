@@ -251,7 +251,7 @@ class BareosFdPluginLocalFileset(
             bareosfd.JobMessage(
                 context,
                 bJobMessageType["M_WARNING"],
-                "Could net set attributes for file %s: \"%s\"" % (file_to_backup, e.message),
+                "Could net set attributes for file %s: \"%s\"" % (file_name, e.message),
             )
 
         return bRCs["bRC_OK"]
