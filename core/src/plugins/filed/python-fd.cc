@@ -2569,17 +2569,26 @@ static PyObject* PyBareosSetValue(PyObject* self, PyObject* args)
   bpContext* ctx = NULL;
   bRC retval = bRC_Error;
   PyObject *pyCtx, *pyValue;
+  plugin_ctx* plug_ctx;
 
   if (!PyArg_ParseTuple(args, "OiO:BareosSetValue", &pyCtx, &var, &pyValue)) {
     goto bail_out;
   }
 
-  ctx = PyGetbpContext(pyCtx);
+  ctx = (bpContext*)PyGetbpContext(pyCtx);
+  plug_ctx = (plugin_ctx*)ctx->pContext;
   switch (var) {
-    case bVarSinceTime:
+    case bVarSinceTime: {
+      int value = 0;
+      value = PyInt_AsLong(pyValue);
+      if (value) {
+        retval = bfuncs->setBareosValue(ctx, (bVariable)var, &value);
+      }
+      plug_ctx->since = value;
+      break;
+    }
     case bVarLevel: {
       int value = 0;
-
       value = PyInt_AsLong(pyValue);
       if (value) {
         retval = bfuncs->setBareosValue(ctx, (bVariable)var, &value);
