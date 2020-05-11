@@ -2578,7 +2578,16 @@ static PyObject* PyBareosSetValue(PyObject* self, PyObject* args)
   ctx = (bpContext*)PyGetbpContext(pyCtx);
   plug_ctx = (plugin_ctx*)ctx->pContext;
   switch (var) {
+    case bVarAccurate: {
+      int value = 0;
+      value = PyInt_AsLong(pyValue);
+      if (value) {
+        retval = bfuncs->setBareosValue(ctx, (bVariable)var, &value);
+      }
+      break;
+    }
     case bVarSinceTime: {
+      // needs to be set in core and in plugin context
       int value = 0;
       value = PyInt_AsLong(pyValue);
       if (value) {
