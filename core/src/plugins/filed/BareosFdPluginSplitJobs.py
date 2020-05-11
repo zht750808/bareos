@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # BAREOS - Backup Archiving REcovery Open Sourced
 #
-# Copyright (C) 2014-2014 Bareos GmbH & Co. KG
+# Copyright (C) 2014-2020 Bareos GmbH & Co. KG
 #
 # This program is Free Software; you can redistribute it and/or
 # modify it under the terms of version three of the GNU Affero General Public
@@ -66,6 +66,7 @@ class BareosFdPluginSplitJobs(
         self.accurate_enabled = bareosfd.GetValue(context, bVariable["bVarAccurate"])
         if self.accurate_enabled is not None and self.accurate_enabled != 0:
             self.accurate_enabled = True
+            # Disable accurate for Full and split incrementals
         self.preliminaryList = []
         # split for a part-job or regular for a regular incremental
         self.jobType = 'split'
@@ -201,6 +202,9 @@ class BareosFdPluginSplitJobs(
         bareosfd.DebugMessage(
             context, 100, "start_backup_job in SplitJobsPlugin called",
         )
+
+        bareosfd.SetValue(context, bVariable["bVarAccurate"], 0)
+
         startTime = int(time.time())
         bareosfd.SetValue(context, bVariable["bVarAccurate"], 0)
         if chr(self.level) == "F":
