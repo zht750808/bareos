@@ -66,8 +66,6 @@ class BareosFdPluginSplitJobs(
         self.accurate_enabled = bareosfd.GetValue(context, bVariable["bVarAccurate"])
         if self.accurate_enabled is not None and self.accurate_enabled != 0:
             self.accurate_enabled = True
-            # Disable accurate for Full and split incrementals
-        bareosfd.SetValue(context, bVariable["bVarAccurate"], 0)
         self.preliminaryList = []
         # split for a part-job or regular for a regular incremental
         self.jobType = 'split'
@@ -95,15 +93,6 @@ class BareosFdPluginSplitJobs(
         )
         if not result == bRCs["bRC_OK"]:
             return result
-        # Accurate may cause problems with plugins
-        #accurate_enabled = GetValue(context, bVariable["bVarAccurate"])
-        #if accurate_enabled is not None and accurate_enabled != 0:
-        #    JobMessage(
-        #        context,
-        #        bJobMessageType["M_FATAL"],
-        #        "start_backup_job: Accurate backup not allowed please disable in Job\n",
-        #    )
-        #    return bRCs["bRC_Error"]
         if 'parallelJobs' in self.options:
             self.numParallelJobs = int(self.options['parallelJobs'])
         return bRCs["bRC_OK"]
@@ -112,13 +101,14 @@ class BareosFdPluginSplitJobs(
         """
         We add timestamp and size information for sorting and slicing
         """
+        filenameEncoded = filename.encode('string_escape')
         if os.path.islink (filename):
             fileStat = os.lstat(filename)
         else:
             fileStat = os.stat(filename)        
-        #self.preliminaryList.append([filename.encode('string_escape'),fileStat.st_mtime,fileStat.st_size])
-        self.preliminaryList.append([filename,fileStat.st_mtime,fileStat.st_size])
-        self.files_to_backup.append(filename)
+        self.preliminaryList.append([filenameEncoded,fileStat.st_mtime,fileStat.st_size])
+        #self.preliminaryList.append([filename,fileStat.st_mtime,fileStat.st_size])
+        self.files_to_backup.append(filenameEncoded)
 
     def sliceList (self, myList, i, maxChunks):
         """
@@ -161,7 +151,7 @@ class BareosFdPluginSplitJobs(
                 "splitJob: Reading information from file %s\n" %self.myJobFile,
             )
             for listItem in config_file.read().splitlines():
-                self.files_to_backup.append(listItem)                #self.files_to_backup.append(listItem.decode('string_escape'))
+                self.files_to_backup.append(listItem.decode('string_escape')) #self.files_to_backup.append(listItem.decode('string_escape'))
 
             config_file.close()
             # TODO: adapt this to sinceTime relevant for this job
@@ -212,6 +202,7 @@ class BareosFdPluginSplitJobs(
             context, 100, "start_backup_job in SplitJobsPlugin called",
         )
         startTime = int(time.time())
+        bareosfd.SetValue(context, bVariable["bVarAccurate"], 0)
         if chr(self.level) == "F":
             result = super(BareosFdPluginSplitJobs, self).start_backup_job(context)
             self.preliminaryList = sorted(self.preliminaryList,key=itemgetter(1))
