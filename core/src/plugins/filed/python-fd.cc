@@ -2581,7 +2581,9 @@ static PyObject* PyBareosSetValue(PyObject* self, PyObject* args)
     case bVarAccurate: {
       int value = 0;
       value = PyInt_AsLong(pyValue);
-      if (value) {
+      if (value == -1 && PyErr_Occurred()) {
+        Jmsg(ctx, M_FATAL, "python-fd:  PyInt_AsLong failed\n");
+      } else {
         retval = bfuncs->setBareosValue(ctx, (bVariable)var, &value);
       }
       break;
@@ -2590,23 +2592,25 @@ static PyObject* PyBareosSetValue(PyObject* self, PyObject* args)
       // needs to be set in core and in plugin context
       int value = 0;
       value = PyInt_AsLong(pyValue);
-      if (value) {
+      if (value == -1 && PyErr_Occurred()) {
+        Jmsg(ctx, M_FATAL, "python-fd:  PyInt_AsLong failed\n");
+      } else {
         retval = bfuncs->setBareosValue(ctx, (bVariable)var, &value);
+        plug_ctx->since = value;
       }
-      plug_ctx->since = value;
-      break;
-    }
+    } break;
     case bVarLevel: {
       int value = 0;
       value = PyInt_AsLong(pyValue);
-      if (value) {
+      if (value == -1 && PyErr_Occurred()) {
+        Jmsg(ctx, M_FATAL, "python-fd:  PyInt_AsLong failed\n");
+      } else {
         retval = bfuncs->setBareosValue(ctx, (bVariable)var, &value);
       }
       break;
     }
     case bVarFileSeen: {
       char* value;
-
       value = PyString_AsString(pyValue);
       if (value) {
         retval = bfuncs->setBareosValue(ctx, (bVariable)var, value);
