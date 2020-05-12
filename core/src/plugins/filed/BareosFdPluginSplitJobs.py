@@ -70,20 +70,29 @@ class BareosFdPluginSplitJobs(
         self.preliminaryList = []
         # split for a part-job or regular for a regular incremental
         self.jobType = 'split'
-        # TODO: make statusDir somewhat unique
-        self.statusDir = (self.workingdir + '/status_splitJobs/')
+        self.statusDir = (self.workingdir + '/plugin_splitJobs_' + self.shortName + '/')
         self.jobDescrFilePrefix = (self.statusDir + "splitJobDescription.")
-        self.runningDir = self.statusDir + "/running/"
+        self.runningDir = self.statusDir + "running/"
+        self.pidDir = self.statusDir + "pid/"
+        self.pidSection = "splitJobStatus"
+        self.pidFileName = self.pidDir + "jobId." + str(self.jobId)
+        self.pidHandle = None
         self.myJobFile = ""
         self.metaInfo = {}
+        self.jobInfo = SafeConfigParser()
+        self.jobInfo.add_section(self.pidSection)
+        # os.getpid() always returns 999 ?!
+        #self.jobInfo.set(self.pidSection, 'pid', str(os.getpid()))
+        self.jobInfo.set(self.pidSection, 'jobId', str(self.jobId))
+        self.jobInfo.set(self.pidSection, 'startTime', str(self.startTime))
         self.splitJobMetaFile = self.statusDir + "splitJobMeta.txt"
         self.numParallelJobs = 1
+        self.totalFiles = 0
+        self.currentFileCounter = 0
         self.removeMetaFile = False 
-        self.tzOffset = -(
-            time.altzone
-            if (time.daylight and time.localtime().tm_isdst)
-            else time.timezone
-        )
+        self.mvFileCounter = 0
+        # Max tries to move job File in possible race conditions
+        self.maxFileMoveLimit = 30
 
     def check_options(self, context, mandatory_options=None):
         """
@@ -97,6 +106,13 @@ class BareosFdPluginSplitJobs(
         if 'parallelJobs' in self.options:
             self.numParallelJobs = int(self.options['parallelJobs'])
         return bRCs["bRC_OK"]
+
+    def writePidStatus(self,context):
+        self.jobInfo.set(self.pidSection,"status", chr(bareosfd.GetValue(context, bVariable["bVarJobStatus"])))
+        self.jobInfo.set(self.pidSection,"currentFileCounter", str(self.currentFileCounter))
+        self.jobInfo.set(self.pidSection,"currentFileName", self.file_to_backup)
+        self.pidHandle.truncate(0)
+        self.jobInfo.write(self.pidHandle)
 
     def append_file_to_backup(self, context, filename):
         """
@@ -119,6 +135,25 @@ class BareosFdPluginSplitJobs(
         k, m = divmod(len(myList), maxChunks)
         return (myList[i * k + min(i, m):(i + 1) * k + min(i + 1, m)])
 
+    def getRunningSisterJobs (self, context):
+        """
+        Return list of pid Files, if found, empty list else
+        """
+        pidFiles = glob.glob(self.pidDir + "*")
+        bareosfd.DebugMessage(
+            context,
+            100,
+            "Found %d pid files in %s\n" % (len(pidFiles), self.pidDir),
+        )
+        return pidFiles
+
+    def moveFile (self, context, src, dst):
+        try:
+            os.rename (src, dst)
+        except:
+            return False
+        return True
+
     def readFileListFromFile(self, context):
         jobFiles = glob.glob(self.jobDescrFilePrefix+"[0-9]*")
         bareosfd.DebugMessage(
@@ -128,9 +163,28 @@ class BareosFdPluginSplitJobs(
         )
         myJobFile = ""
         if jobFiles and len(jobFiles) > 0:
-            # TODO error handling / race condition handling
             self.myJobFile = jobFiles[0]
-            os.rename(self.myJobFile, self.runningDir + os.path.basename(self.myJobFile))
+            dstName = (self.runningDir + os.path.basename(self.myJobFile))
+            # try to move jobFile to running dir
+            if not self.moveFile (context, self.myJobFile, dstName):
+                JobMessage(
+                    context,
+                    bJobMessageType["M_INFO"],
+                    "splitJob: Could not move job file %s to %s. Possible race condition\n" %(self.myJobFile, dstName),
+                )
+                time.sleep(3)
+                if self.mvFileCounter < self.maxFileMoveLimit:
+                    # try it again
+                    self.mvFileCounter += 1
+                    return self.readFileListFromFile(context)
+                else:
+                    JobMessage(
+                        context,
+                        bJobMessageType["M_FATAL"],
+                        "splitJob: Could not move job file %s to %s %d times. Giving up.\n" %(self.myJobFile, dstName, self.maxFileMoveLimit),
+                    )
+                    return False
+
             self.myJobFile = self.runningDir + os.path.basename(self.myJobFile)
             bareosfd.DebugMessage(
                 context,
@@ -155,16 +209,22 @@ class BareosFdPluginSplitJobs(
                 self.files_to_backup.append(listItem.decode('string_escape')) #self.files_to_backup.append(listItem.decode('string_escape'))
 
             config_file.close()
-            # TODO: adapt this to sinceTime relevant for this job
+            # TODO: adapt this to sinceTime relevant for this job / optional since parameter
             bareosfd.SetValue(context,bVariable["bVarSinceTime"],1)
-        # no job file found, check for meta file
+        # no job file found, check for running jobs / meta file
         else:
+            if self.getRunningSisterJobs (context):
+                JobMessage(
+                    context,
+                    bJobMessageType["M_FATAL"],
+                    "splitJob: No job description but unfinished jobs found. Check %s\n" %(self.pidDir),
+                )
+                return False
             if os.path.exists(self.splitJobMetaFile):
                 # we have no job-file but a meta file
                 # This means we are the first Incremental
                 # running after the last split job
                 # Read latest timestamp and use that as SinceTime
-                # TODO: make sure no incr. is still running
                 parser = SafeConfigParser()
                 parser.read(self.splitJobMetaFile)
                 maxTimestamp = parser.get('SplitJob','MaxTimestamp')
@@ -173,9 +233,7 @@ class BareosFdPluginSplitJobs(
                     bJobMessageType["M_INFO"],
                     "splitJob: first Incr. after split cycle. Using SinceTime from meta-file %s\n" %maxTimestamp ,
                 )
-                # TODO Set SinceTime to maxTimestamp
                 bareosfd.SetValue(context,bVariable["bVarSinceTime"],int(float(maxTimestamp)))
-                # TODO Sanity check for orphaned jobs, redo unfinisched work
                 # Remove meta-File after backup, if job finishes regularly
                 self.removeMetaFile = True
                 return False
@@ -251,6 +309,14 @@ class BareosFdPluginSplitJobs(
             return result
         elif chr(self.level) == "I":
             if self.readFileListFromFile (context):
+                # Init process information and create pid file
+                # os.getpid() always returns 999 in plugins - not usable here
+                #self.pidFileName += str(os.getpid())
+                if not os.path.exists(self.pidDir):
+                    os.makedirs(self.pidDir)
+                self.pidHandle = open(self.pidFileName, 'wb')
+                self.jobInfo.set(self.pidSection,"totalFiles", str(len(self.files_to_backup)))
+                self.writePidStatus(context)
                 return bRCs["bRC_OK"]
             else:
                 # use full list and SinceDate
@@ -264,34 +330,63 @@ class BareosFdPluginSplitJobs(
             )
             return bRCs["bRC_Error"]
         return bRCs["bRC_OK"]
+ 
+    def start_backup_file(self, context, savepkt):
+        result = super(BareosFdPluginSplitJobs, self).start_backup_file(context,savepkt)
+        #time.sleep(2)
+        if result == bRCs["bRC_OK"]:
+            self.currentFileCounter += 1
+        if self.pidHandle:
+            self.writePidStatus (context)
+        return result
 
+    def delete_file_if_exists(self, context, fileName):
+        if os.path.exists(fileName):
+            try:
+                os.remove(fileName)
+            except Exception as e:
+                bareosfd.JobMessage(
+                    context,
+                    bJobMessageType["M_ERROR"],
+                    "splitJob: could not remove file %s. \"%s\"" % (fileName, e.message),
+                )
+                return False
+        return True
+
+    def end_job(self, context):
+        """
+        Called if backup job ends, before ClientAfterJob 
+        Remove working file / jobDescription File
+        """
+        bareosfd.DebugMessage(
+            context, 150, "end_job in SplitJobsPlugin called. Status: %s" %chr(bareosfd.GetValue(context, bVariable["bVarJobStatus"])),
+        )
+ 
     def end_backup_job(self, context):
         """
         Called if backup job ends, before ClientAfterJob 
         Remove working file / jobDescription File
-        TODO: make sure to remove file only, if job finishes regularly
         """
-        if chr(self.level) == "I" and os.path.exists (self.myJobFile):
-            try:
-                os.remove(self.myJobFile)
-            except Exception as e:
-                bareosfd.JobMessage(
-                    context,
-                    bJobMessageType["M_ERROR"],
-                    "splitJob: could not remove job file %s. \"%s\"" % (self.myJobFile, e.message),
-                )
-                return bRCs["bRC_Error"]
-        if self.removeMetaFile and os.path.exists(self.splitJobMetaFile):
-            try:
-                os.remove(self.splitJobMetaFile)
-            except Exception as e:
-                bareosfd.JobMessage(
-                    context,
-                    bJobMessageType["M_ERROR"],
-                    "splitJob: could not remove metadata file %s. \"%s\"" % (self.splitJobMetaFile, e.message),
-                )
-                return bRCs["bRC_Error"]
-        return bRCs["bRC_OK"]
+        jobStatus = chr(bareosfd.GetValue(context, bVariable["bVarJobStatus"]))
+        bareosfd.DebugMessage(
+            context, 150, "end_backup_job in SplitJobsPlugin called. Status: %s" %jobStatus,
+        )
+        result = True
+        if chr(self.level) == "I":
+            if self.pidHandle:
+                self.pidHandle.close()
+            if jobStatus in ['A','f']:
+                result = self.moveFile (context, self.myJobFile, self.statusDir + os.path.basename(self.myJobFile))
+            else:
+                result += self.delete_file_if_exists (context, self.myJobFile)
+            result += self.delete_file_if_exists(context, self.pidFileName)
+        if self.removeMetaFile:
+            result += self.delete_file_if_exists(context,self.splitJobMetaFile)
+        if result:
+            return bRCs["bRC_OK"]
+        else:
+            return bRCs["bRC_Error"]
+
 
 
 # vim: ts=4 tabstop=4 expandtab shiftwidth=4 softtabstop=4

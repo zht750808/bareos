@@ -54,6 +54,7 @@ class BareosFdPluginLocalFileset(
             context, plugindef, mandatory_options
         )
         self.files_to_backup = []
+        self.file_to_backup = ""
         self.allow = None
         self.deny = None
 
@@ -173,20 +174,20 @@ class BareosFdPluginLocalFileset(
             bareosfd.DebugMessage(context, 100, "No files to backup\n")
             return bRCs["bRC_Skip"]
 
-        file_to_backup = self.files_to_backup.pop().decode('string_escape')
-        bareosfd.DebugMessage(context, 100, "file: " + file_to_backup + "\n")
+        self.file_to_backup = self.files_to_backup.pop().decode('string_escape')
+        bareosfd.DebugMessage(context, 100, "file: " + self.file_to_backup + "\n")
 
         mystatp = bareosfd.StatPacket()
         try:
-            if os.path.islink(file_to_backup):
-                statp = os.lstat(file_to_backup)
+            if os.path.islink(self.file_to_backup):
+                statp = os.lstat(self.file_to_backup)
             else:
-                statp = os.stat(file_to_backup)
+                statp = os.stat(self.file_to_backup)
         except Exception as e:
             bareosfd.JobMessage(
                 context,
                 bJobMessageType["M_ERROR"],
-                "Could net get stat-info for file %s: \"%s\"" % (file_to_backup, e.message),
+                "Could net get stat-info for file %s: \"%s\"" % (self.file_to_backup, e.message),
             )
         # As of Bareos 19.2.7 attribute names in bareosfd.StatPacket differ from os.stat
         # In this case we have to translate names
@@ -205,31 +206,31 @@ class BareosFdPluginLocalFileset(
             mystatp.atime = statp.st_atime
             mystatp.mtime = statp.st_mtime
             mystatp.ctime = statp.st_ctime
-        savepkt.fname = file_to_backup.encode('string_escape')
+        savepkt.fname = self.file_to_backup.encode('string_escape')
         # os.islink will detect links to directories only when
         # there is no trailing slash - we need to perform checks
         # on the stripped name but use it with trailing / for the backup itself
-        if os.path.islink(file_to_backup.rstrip("/")):
+        if os.path.islink(self.file_to_backup.rstrip("/")):
             savepkt.type = bFileType["FT_LNK"]
-            savepkt.link = os.readlink(file_to_backup.rstrip("/").encode('string_escape'))
+            savepkt.link = os.readlink(self.file_to_backup.rstrip("/").encode('string_escape'))
             bareosfd.DebugMessage(context, 150, "file type is: FT_LNK\n")
-        elif os.path.isfile(file_to_backup):
+        elif os.path.isfile(self.file_to_backup):
             savepkt.type = bFileType["FT_REG"]
             bareosfd.DebugMessage(context, 150, "file type is: FT_REG\n")
-        elif os.path.isdir(file_to_backup):
+        elif os.path.isdir(self.file_to_backup):
             savepkt.type = bFileType["FT_DIREND"]
-            savepkt.link = file_to_backup
+            savepkt.link = self.file_to_backup
             bareosfd.DebugMessage(
-                context, 150, "file %s type is: FT_DIREND\n" % file_to_backup
+                context, 150, "file %s type is: FT_DIREND\n" % self.file_to_backup
             )
-        elif stat.S_ISFIFO(os.stat(file_to_backup).st_mode):
+        elif stat.S_ISFIFO(os.stat(self.file_to_backup).st_mode):
             savepkt.type = bFileType["FT_FIFO"]
             bareosfd.DebugMessage(context, 150, "file type is: FT_FIFO\n")
         else:
             bareosfd.JobMessage(
                 context,
                 bJobMessageType["M_WARNING"],
-                "File %s of unknown type" % (file_to_backup),
+                "File %s of unknown type" % (self.file_to_backup),
             )
             return bRCs["bRC_Skip"]
 

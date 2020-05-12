@@ -29,6 +29,7 @@ from bareos_fd_consts import bVariable, bFileType, bRCs, bCFs
 from bareos_fd_consts import bEventType, bIOPS, bJobMessageType
 import os
 import stat
+import time
 
 class BareosFdPluginBaseclass(object):
 
@@ -56,7 +57,11 @@ class BareosFdPluginBaseclass(object):
         self.since = bareosfd.GetValue(context, bVariable["bVarSinceTime"])
         self.level = bareosfd.GetValue(context, bVariable["bVarLevel"])
         self.jobName = bareosfd.GetValue(context, bVariable["bVarJobName"])
+        # jobName is of format myName.2020-05-12_11.35.27_05
+        # short Name is everything left of the third point seen from the right
+        self.shortName = self.jobName.rsplit('.', 3)[0] 
         self.workingdir = bareosfd.GetValue(context, bVariable["bVarWorkingDir"])
+        self.startTime = int(time.time())
         self.FNAME = "undef"
         self.filetype = "undef"
         self.file = None
