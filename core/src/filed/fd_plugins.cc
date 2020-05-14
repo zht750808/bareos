@@ -1202,11 +1202,11 @@ bool PluginNameStream(JobControlRecord* jcr, char* name)
     }
 
     if (b_ctx->restoreFileStarted) {
-      Jmsg2(jcr, M_FATAL, 0,
+      Jmsg2(jcr, M_INFO, 0,
             "Second call to startRestoreFile. plugin=%s cmd=%s\n",
             ctx->plugin->file, cmd);
-      b_ctx->restoreFileStarted = false;
-      goto bail_out;
+      // b_ctx->restoreFileStarted = false;
+      // goto bail_out;
     }
 
     if (PlugFunc(ctx->plugin)->startRestoreFile(jcr->plugin_ctx, cmd) ==
@@ -1269,17 +1269,18 @@ int PluginCreateFile(JobControlRecord* jcr,
   rp.replace = jcr->impl->replace;
   rp.create_status = CF_ERROR;
 
+
   Dmsg4(debuglevel,
         "call plugin createFile stream=%d type=%d LinkFI=%d File=%s\n",
         rp.stream, rp.type, rp.LinkFI, rp.ofname);
   if (rp.attrEx) { Dmsg1(debuglevel, "attrEx=\"%s\"\n", rp.attrEx); }
 
-  if (!b_ctx->restoreFileStarted || b_ctx->createFileCalled) {
-    Jmsg2(jcr, M_FATAL, 0, "Unbalanced call to createFile=%d %d\n",
-          b_ctx->createFileCalled, b_ctx->restoreFileStarted);
-    b_ctx->createFileCalled = false;
-    return CF_ERROR;
-  }
+  /* if (!b_ctx->restoreFileStarted || b_ctx->createFileCalled) { */
+  /*   Jmsg2(jcr, M_FATAL, 0, "Unbalanced call to createFile=%d %d\n", */
+  /*         b_ctx->createFileCalled, b_ctx->restoreFileStarted); */
+  /*   b_ctx->createFileCalled = false; */
+  /*   return CF_ERROR; */
+  /* } */
 
   retval = PlugFunc(plugin)->createFile(ctx, &rp);
   if (retval != bRC_OK) {
