@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python2
 import string
 import tempfile
 import sys
@@ -18,7 +18,7 @@ def mkdir(directory_name):
     except OSError:
         os.makedirs(directory_name)
 
-l1 = 10 
+l1 = 10
 l2 = 10
 l3 = 10
 l4 = 100
