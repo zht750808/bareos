@@ -4,4 +4,5 @@ Client {
   Address = localhost
   Password = "@fd_password@"          # password for FileDaemon
   FD PORT = @fd_port@
+  Maximum Concurrent Jobs = 80
 }

@@ -1,6 +1,6 @@
 Storage {
   Name = bareos-sd
-  Maximum Concurrent Jobs = 20
+  Maximum Concurrent Jobs = 80
 
   # remove comment from "Plugin Directory" to load plugins from specified directory.
   # if "Plugin Names" is defined, only the specified plugins will be loaded,

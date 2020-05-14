@@ -60,14 +60,8 @@ run job=$JobName Level=Incremental yes
 status director
 status client
 status storage=File
-@#wait
-messages
-run job=$JobName Level=Incremental yes
-status director
-status client
-status storage=File
 wait
-@#messages
+messages
 run job=$JobName Level=Incremental yes
 status director
 status client
@@ -86,7 +80,6 @@ status client
 status storage=File
 wait
 messages
-
 @#
 @# now do a restore
 @#

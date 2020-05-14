@@ -4,4 +4,5 @@ Job {
   Client = "bareos-fd"
   FileSet = "PluginTest"
   Accurate = "yes"
+  Maximum Concurrent Jobs = 80
 }
