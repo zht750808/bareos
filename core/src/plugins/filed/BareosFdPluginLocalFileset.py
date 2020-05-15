@@ -321,6 +321,13 @@ class BareosFdPluginLocalFileset(
             os.chown(file_name, file_attr.uid, file_attr.gid)
             os.chmod(file_name, file_attr.mode)
             os.utime(file_name, (file_attr.atime, file_attr.mtime))
+            newStat = os.stat(file_name)
+            bareosfd.DebugMessage(
+                context,
+                150,
+                "Verified file attributes " + file_name + " with stat " + str(newStat) + "\n",
+            )
+
         except Exception as e:
             bareosfd.JobMessage(
                 context,

@@ -2,8 +2,9 @@ Storage {
   Name = File
   Address = @hostname@                # N.B. Use a fully qualified name here (do not use "localhost" here).
   Password = "@sd_password@"
-  Device = FileStorage
+  Device = virtual-autochanger
+  Autochanger = yes
   Media Type = File
   SD Port = @sd_port@
-  Maximum Concurrent Jobs = 80
+  MaximumConcurrentJobs = 20
 }
