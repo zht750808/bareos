@@ -1,0 +1,13 @@
+Job {
+  Name = "backup-split-jobs"
+  JobDefs = "DefaultJob"
+  FileSet = "plugin-split-jobs"
+  Accurate = "yes"
+  # Warning: when using concurrent jobs, make sure to 
+  # have 'Maximum Concurrent Jobs = 1' set on your DEVICE
+  # Otherwise your restore might not work
+  # To run parallel jobs, use multiplied devices, see
+  # https://docs.bareos.org/Configuration/StorageDaemon.html#multiplied-device
+  # Maximum Concurrent Jobs = 3
+  # Client = "bareos-fd"
+}

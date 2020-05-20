@@ -1,0 +1,6 @@
+FileSet {
+  Name = "plugin-split-jobs"
+  Include {
+    Plugin = "python:module_path=@plugindir@:module_name=bareos-fd-split-jobs:filename=/etc/bareos/filelist:parallelJobs=3"
+  }
+}
