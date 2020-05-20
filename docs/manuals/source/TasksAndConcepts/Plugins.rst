@@ -1320,6 +1320,66 @@ If things don't work as expected, make sure that
 Support is available here: https://www.bareos.com
 
 
+Split Jobs Plugin
+~~~~~~~~~~~~~~~~~
+:index:`\ <single: Plugin; Split Jobs>`
+:index:`\ <single: Parallel Job>`
+:index:`\ <single: Split Jobs>`
+:index:`\ <single: Fileset; Parallel backup>`
+
+.. warning::
+
+This is a new experimental feature. Make sure to verify a full restore job.
+
+Challenge: large (by means of #files and bytes) jobs often run very long exceeding backup windows. If interrupted, everything done so far is useless and the job has to be started from scratch again.
+This plugin automatically splits a large fileset into *n* parts. Each of this *n* parts will be back-uped by an incremental job. These jobs can run in parallel. 
+
+.. warning:: 
+
+If running parallel aka 'Concurrent' jobs, make sure, that each job writes to a different device, otherwise restore-erros might occur. 
+
+
+Basic Concept
+^^^^^^^^^^^^^
+
+* split full jobs into n incremental jobs
+* The full job itself only prepares the job-splitting, keeping local meta-data in temporary files on the client. The full job itself does not backup any data
+  * Based on the LocalFileset plugin, fileset definition via a FD side include-file
+  * Number of split jobs n given as plugin parameter
+  * Full job creates a file list for each of the n split-job, slicing by number of files, sorted by files mtime (data amount may be considered in a second iteration)
+  * Slicing by mtime offers the opportunity to reliably get all files from a fileset in a consistent parallelized way
+  * Optional since / until parameter to ignore files outside the given since-until range (not implemented, yet)
+* Incremental jobs have2 possible modes: split and regular
+  * split: plugin will check for special files defining fileset / time-slice for split jobs
+    * only backup files from the defined time-slice
+    * cleanup job-description files
+  * regular: if no special job-description file found:
+    * if no job-description: run regular incremental job
+    * use since time from last regular incremental job or use latest timeslice from previous split-job (needs local information / statefile)
+* Job Handling:
+  * Director needs to start a full job and at least n Incrementals have to finish succesully, to achieve complete full backup
+  * Following incrementals are just regular jobs
+* Restrictions:
+  * Differential not supported
+  * Full backup requires Full + n succesful incremental 'split' jobs
+
+Configuration
+^^^^^^^^^^^^^
+
+This plugin is derived form LocalFileset plugin. The fileset has to options.
+# :strong: `filename`: file on the client with a list of files and directories to backup. Directory means: the whole tree will be back-uped.
+# :strong: `parallelJobs` : number of chunks to create for parallel processing by incremental jobs
+
+.. code-block:: bareosconfig
+   :caption: bareos-dir.d/fileset/split-jobs.conf
+
+   FileSet {
+       Name = "plugin-split-jobs"
+       Include {
+           Plugin = "python:module_path=/usr/local/lib64/bareos/plugins:module_name=bareos-fd-split-jobs:filename=/etc/bareos/filelist:parallelJobs=3"
+       }
+   }
+
 .. _sdPlugins:
 
 Storage Daemon Plugins
