@@ -589,6 +589,12 @@ Requires:   bareos-filedaemon = %{version}
 Requires:   bareos-filedaemon-python-plugin = %{version}
 #Requires:   python-percona
 
+%package    filedaemon-split-jobs-python-plugin
+Summary:    Split a local fileset into n parts - Python plugin for Bareos File daemon
+Group:      Productivity/Archiving/Backup
+Requires:   bareos-filedaemon = %{version}
+Requires:   bareos-filedaemon-python-plugin = %{version}
+
 %package    storage-python-plugin
 Summary:    Python plugin for Bareos Storage daemon
 Group:      Productivity/Archiving/Backup
@@ -623,6 +629,14 @@ This package contains the PostgreSQL python plugin for the file daemon
 %{dscr}
 
 This package contains the Percona python plugin for the file daemon
+
+%description filedaemon-split-jobs-python-plugin
+%{dscr}
+
+This package contains the split-jobs python plugin for the file daemon.
+A full job splits a local filest into n parts, so the following n incremental
+jobs will pickup 1/nth of the total files for backup. This enables parallel
+backups of large filesets.
 
 %description storage-python-plugin
 %{dscr}
@@ -1424,6 +1438,11 @@ echo "This is a meta package to install a full bareos system" > %{buildroot}%{_d
 ##attr(0640, #{director_daemon_user}, #{daemon_group}) #{_sysconfdir}/#{name}/bareos-dir.d/fileset/plugin-percona-xtrabackup.conf.example
 ##attr(0640, #{director_daemon_user}, #{daemon_group}) #{_sysconfdir}/#{name}/bareos-dir.d/job/backup-percona-xtrabackup.conf.example
 ##attr(0640, #{director_daemon_user}, #{daemon_group}) #{_sysconfdir}/#{name}/bareos-dir.d/job/restore-percona-xtrabackup.conf.example
+
+%files filedaemon-split-jobs-python-plugin
+%defattr(-, root, root)
+%{plugin_dir}/bareos-fd-split-jobs.py*
+%{plugin_dir}/BareosFdPluginSplitJobs.py*
 
 %files director-python-plugin
 %defattr(-, root, root)
