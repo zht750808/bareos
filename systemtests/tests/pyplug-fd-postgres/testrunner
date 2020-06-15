@@ -38,6 +38,9 @@ INSERT INTO t (text, created_on) values ('test for FULL backup', current_timesta
 SELECT * FROM t;
 EOF
 
+# Get Postgres version as numeric value, e.g. 90000 or 120201.
+DBVER=`echo "SELECT current_setting('server_version_num')" | ${PSQL} postgres  | grep -o "^ [0-9]\+$"`
+
 start_test
 
 cat <<END_OF_DATA >$tmp/bconcmds
@@ -97,9 +100,15 @@ sleep 1
 #sometimes the pid file remains
 rm -f database/data/postmaster.pid
 
-# Create a recovery.conf
+# Create a recovery.conf vor PG < 12, a recovery.signal and entry in postgresql.conf for PG >= 12
 # This may become a plugin feature later on
-echo "restore_command = 'cp $current_test_directory/database/wal_archive/%f %p'" > $current_test_directory/database/data/recovery.conf
+if [ "$DBVER" -ge 120000 ]; then
+    echo "restore_command = 'cp $current_test_directory/database/wal_archive/%f %p'" >> $current_test_directory/database/data/postgresql.conf
+    touch $current_test_directory/database/data/recovery.signal
+else
+    echo "restore_command = 'cp $current_test_directory/database/wal_archive/%f %p'" > $current_test_directory/database/data/recovery.conf
+fi
+
 
 # start DB again - shall recover to latest possible state
 pushd database > /dev/null
@@ -122,3 +131,4 @@ else
 fi
 
 end_test
+
