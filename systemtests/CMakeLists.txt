@@ -659,6 +659,7 @@ set(SYSTEM_TESTS
     virtualfull
     virtualfull-bscan
     volume-pruning
+    ai-duplicate-job-cancel
 )
 
 set(SYSTEM_TESTS_DISABLED # initially empty
