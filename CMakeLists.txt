@@ -23,6 +23,8 @@ cmake_minimum_required(VERSION 3.0)
 project(bareos NONE)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/core/cmake")
+list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/../../SOURCES")
+list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/../SOURCES")
 
 add_custom_target(uninstall
 	"${CMAKE_COMMAND}" -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/uninstall.cmake"
@@ -44,9 +46,12 @@ set(SITE
     "${CMAKE_SYSTEM_NAME}-${DISTVER}-${CMAKE_HOST_SYSTEM_PROCESSOR}"
     CACHE STRING "build name variable for CDash"
 )
+set(CMAKE_CTEST_COMMAND ctest -V)
+
+include(BareosLocalTestDefinitions OPTIONAL)
+
 # enable "make test"
 enable_testing()
-set(CMAKE_CTEST_COMMAND ctest -V)
 include(CTest)
 
 if(docs-build-json)
