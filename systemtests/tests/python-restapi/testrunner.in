@@ -1,0 +1,49 @@
+#!/bin/bash
+set -e
+set -u
+#
+TestName="$(basename "$(pwd)")"
+export TestName
+
+JobName=backup-bareos-fd
+#shellcheck source=../environment.in
+. ./environment
+
+JobName=backup-bareos-fd
+#shellcheck source=../scripts/functions
+. "${rscripts}"/functions
+"${rscripts}"/cleanup
+"${rscripts}"/setup
+
+
+
+# Directory to backup.
+# This directory will be created by setup_data "$@"().
+BackupDirectory="${tmp}/data"
+
+# Use a tgz to setup data to be backed up.
+# Data will be placed at "${tmp}/data/".
+setup_data "$@"
+
+start_test
+
+start_bareos
+
+#run_python_unittests "$@"
+## place api tests here
+## TODO: error handling / make sure api gets stopped
+cd api
+./startapi.sh
+sleep 3
+echo "api started"
+TOKEN=`curl -X POST "http://127.0.0.1:@restapi_port@/token" -H  "accept: application/json" -H  "Content-Type: application/x-www-form-urlencoded" -d "grant_type=&username=admin-notls&password=secret&scope=&client_id=&client_secret=" | grep access_token | cut -d '"' -f 4`
+echo $TOKEN
+curl -X GET "http://127.0.0.1:@restapi_port@/configuration/clients" -H  "accept: application/json" -H  "Authorization: Bearer $TOKEN" | grep bareos-fd
+./stopapi.sh
+cd -
+
+check_for_zombie_jobs storage=File client=bareos-fd
+
+stop_bareos
+
+end_test

@@ -1,0 +1,12 @@
+dataclasses==0.7
+fastapi==0.61.1
+pydantic==1.6.1
+python-bareos==19.2.8
+# This will require gcc and some headerfiles
+#sslpsk==1.0.0
+starlette==0.13.6
+python-jose==3.2.0
+uvicorn==0.11.8
+python-multipart==0.0.5
+passlib==1.7.2
+packaging==20.4

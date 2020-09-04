@@ -274,6 +274,7 @@ macro(prepare_test)
   math(EXPR sd2_port "${BASEPORT} + 3")
   math(EXPR php_port "${BASEPORT} + 4")
   math(EXPR test_db_port "${BASEPORT} + 5")
+  math(EXPR restapi_port "${BASEPORT} + 6")
 
   # skip for tests without etc/bareos ("catalog" test)
   if(EXISTS ${current_test_source_directory}/etc/bareos)
@@ -442,6 +443,7 @@ set(dir_port 8101)
 set(dumps ${PROJECT_BINARY_DIR}/dumps)
 set(fd_password "fd_password")
 set(fd_port 8102)
+set(restapi_port 8000)
 
 if(NOT hostname)
   cmake_host_system_information(RESULT hostname QUERY HOSTNAME)
@@ -635,6 +637,23 @@ if(PYTHON_EXECUTABLE
 else()
   list(APPEND SYSTEM_TESTS_DISABLED "python-bareos")
 endif()
+
+check_pymodule_available(3 fastapi)
+check_pymodule_available(3 uvicorn)
+
+# python-restapi-test does not work on installed files and needs some modules
+if(PYTHON_EXECUTABLE
+   AND PYTHON
+   AND PYMODULE_3_FASTAPI_FOUND
+   AND PYMODULE_3_UVICORN_FOUND
+   AND NOT RUN_SYSTEMTESTS_ON_INSTALLED_FILES
+   AND NOT in_container
+)
+  list(APPEND SYSTEM_TESTS "python-restapi")
+else()
+  list(APPEND SYSTEM_TESTS_DISABLED "python-restapi")
+endif()
+
 
 bareosfindlibrary("gtest")
 if(GTEST_FOUND AND NOT RUN_SYSTEMTESTS_ON_INSTALLED_FILES)

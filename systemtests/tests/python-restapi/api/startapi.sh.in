@@ -1,0 +1,5 @@
+#!/bin/bash
+uvicorn main:app --port @restapi_port@ &
+PID=$!
+echo @restapi_port@ > api.port
+echo $PID > api.pid
