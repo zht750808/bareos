@@ -296,12 +296,14 @@ class BareosFdPluginLocalFileset(
                 bareosfd.M_ERROR,
                 "Unknown type %s of file %s" % (restorepkt.type, FNAME),
             )
+        self.FNAME = FNAME
         return bareosfd.bRC_OK
 
+    
     def set_file_attributes(self, restorepkt):
         """
         Need to verify: we set attributes here but on plugin_io close
-        the mtime will be modified again.
+        #the mtime will be modified again.
         approach: save stat-packet here and set it on
         end_restore_file
         """
@@ -340,7 +342,7 @@ class BareosFdPluginLocalFileset(
             )
 
         return bareosfd.bRC_OK
-
+    
     def end_restore_file(self):
         bareosfd.DebugMessage(
             100,
@@ -352,7 +354,7 @@ class BareosFdPluginLocalFileset(
             + self.FNAME
             + " with stat "
             + str(self.statp[self.FNAME])
-            + "\n",
+            + "\n"
         )
         try:
             os.chown(self.FNAME, self.statp[self.FNAME].st_uid, self.statp[self.FNAME].st_gid)

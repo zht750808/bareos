@@ -679,6 +679,19 @@ else()
   list(APPEND SYSTEM_TESTS_DISABLED "py3plug-fd-local-fileset")
 endif()
 
+if(TARGET python-fd)
+  list(APPEND SYSTEM_TESTS "py2plug-fd-split-jobs")
+else()
+  list(APPEND SYSTEM_TESTS_DISABLED "py2plug-fd-split-jobs")
+endif()
+
+if(TARGET python3-fd)
+  list(APPEND SYSTEM_TESTS "py3plug-fd-split-jobs")
+else()
+  list(APPEND SYSTEM_TESTS_DISABLED "py3plug-fd-split-jobs")
+endif()
+
+
 check_pymodule_available(2 libcloud)
 check_pymodule_available(3 libcloud)
 if(TARGET python-fd)

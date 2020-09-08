@@ -167,6 +167,8 @@ set(PYFILES
     pyfiles/BareosFdWrapper.py
     pyfiles/BareosFdPluginLocalFileset.py
     pyfiles/bareos-fd-local-fileset.py
+    pyfiles/BareosFdPluginLocalFileset.py
+    pyfiles/bareos-fd-local-fileset.py
     ldap/bareos-fd-ldap.py
     ldap/BareosFdPluginLDAP.py
     ovirt/bareos-fd-ovirt.py
