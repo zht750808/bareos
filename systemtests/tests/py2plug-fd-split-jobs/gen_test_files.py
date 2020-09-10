@@ -20,8 +20,8 @@ def mkdir(directory_name):
 
 l1 = 10
 l2 = 10
-l3 = 10
-l4 = 100
+l3 = 1
+l4 = 1
 
 print "Generating %d * %d * %d * %d = %d Testfiles ..." % (l1, l2, l3, l4, l1*l2*l3*l4)
 

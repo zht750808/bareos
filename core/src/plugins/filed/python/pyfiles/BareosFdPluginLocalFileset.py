@@ -171,7 +171,7 @@ class BareosFdPluginLocalFileset(
             bareosfd.DebugMessage(100, "No files to backup\n")
             return bareosfd.bRC_Skip
 
-        self.file_to_backup = self.files_to_backup.pop() #.decode('string_escape')
+        self.file_to_backup = self.files_to_backup.pop().decode('string_escape')
         savepkt.fname = self.file_to_backup
         bareosfd.DebugMessage(100, "file: " + self.file_to_backup + "\n")
         bareosfd.DebugMessage(150, "savepkt.fname: " + savepkt.fname + "\n")
