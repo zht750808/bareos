@@ -193,7 +193,7 @@ class BareosFdPluginSplitJobs(
                 "Trying to open file %s\n" % (self.myJobFile),
             )
             try:
-                config_file = open(self.myJobFile, "rb")
+                config_file = open(self.myJobFile, "r")
             except:
                 JobMessage(
                     
@@ -207,10 +207,14 @@ class BareosFdPluginSplitJobs(
                 "splitJob: Reading information from file %s\n" %self.myJobFile,
             )
             for listItem in config_file.read().splitlines():
-                self.files_to_backup.append(listItem.decode('unicode_escape')) #self.files_to_backup.append(listItem.decode('string_escape'))
+                self.files_to_backup.append(listItem.encode().decode('unicode_escape')) #self.files_to_backup.append(listItem.decode('string_escape'))
 
             config_file.close()
             # TODO: adapt this to sinceTime relevant for this job / optional since parameter
+            bareosfd.DebugMessage(
+                150,
+                "Setting SinceTime to 1, backup all file from list",
+            )
             bareosfd.SetValue(bVarSinceTime,1)
         # no job file found, check for running jobs / meta file
         else:
@@ -261,8 +265,6 @@ class BareosFdPluginSplitJobs(
         bareosfd.DebugMessage(
              100, "start_backup_job in SplitJobsPlugin called",
         )
-
-        bareosfd.SetValue(bVarAccurate, 0)
 
         startTime = int(time.time())
         bareosfd.SetValue(bVarAccurate, 0)

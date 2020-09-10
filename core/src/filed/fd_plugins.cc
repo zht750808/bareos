@@ -2224,6 +2224,13 @@ static bRC bareosSetValue(PluginContext* ctx, bVariable var, void* value)
   if (!jcr) { return bRC_Error; }
 
   switch (var) {
+    case bVarAccurate:
+      jcr->accurate = (*(int*)value) ? true : false;
+      Dmsg1(debuglevel, "set jcr->accurate to value %d.\n", jcr->accurate);
+      Jmsg1(jcr, M_INFO, 0, "Info: set jcr->accurate to value %d.\n",
+            jcr->accurate);
+      break;
+    
     case bVarSinceTime:
       jcr->impl->since_time = (*(int*)value);
       break;

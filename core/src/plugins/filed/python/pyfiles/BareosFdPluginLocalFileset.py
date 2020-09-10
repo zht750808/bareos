@@ -171,8 +171,10 @@ class BareosFdPluginLocalFileset(
             bareosfd.DebugMessage(100, "No files to backup\n")
             return bareosfd.bRC_Skip
 
-        self.file_to_backup = self.files_to_backup.pop()
+        self.file_to_backup = self.files_to_backup.pop() #.decode('string_escape')
+        savepkt.fname = self.file_to_backup
         bareosfd.DebugMessage(100, "file: " + self.file_to_backup + "\n")
+        bareosfd.DebugMessage(150, "savepkt.fname: " + savepkt.fname + "\n")
 
         mystatp = bareosfd.StatPacket()
         try:
@@ -206,7 +208,6 @@ class BareosFdPluginLocalFileset(
         mystatp.st_ctime = statp.st_ctime
         #bareosfd.JobMessage( bareosfd.M_ERROR, '\nmystatp: %s\nstatp: %s\n' % (mystatp,statp))
 
-        savepkt.fname = self.file_to_backup
         # os.islink will detect links to directories only when
         # there is no trailing slash - we need to perform checks
         # on the stripped name but use it with trailing / for the backup itself
@@ -237,7 +238,9 @@ class BareosFdPluginLocalFileset(
 
         savepkt.statp = mystatp
         bareosfd.DebugMessage(150, "file statpx " + str(savepkt.statp) + "\n")
-
+        bareosfd.DebugMessage(
+                150, "savepkt.fname: %s\n" % str(savepkt.fname)
+            )
         return bareosfd.bRC_OK
 
     def create_file(self, restorepkt):
