@@ -1317,12 +1317,13 @@ int PluginCreateFile(JobControlRecord* jcr,
         rp.stream, rp.type, rp.LinkFI, rp.ofname);
   if (rp.attrEx) { Dmsg1(debuglevel, "attrEx=\"%s\"\n", rp.attrEx); }
 
-  if (!b_ctx->restoreFileStarted || b_ctx->createFileCalled) {
-    Jmsg2(jcr, M_FATAL, 0, "Unbalanced call to createFile=%d %d\n",
-          b_ctx->createFileCalled, b_ctx->restoreFileStarted);
-    b_ctx->createFileCalled = false;
-    return CF_ERROR;
-  }
+  // commented out for split-job plugin -- need investigation
+  /* if (!b_ctx->restoreFileStarted || b_ctx->createFileCalled) { */
+  /*   Jmsg2(jcr, M_FATAL, 0, "Unbalanced call to createFile=%d %d\n", */
+  /*         b_ctx->createFileCalled, b_ctx->restoreFileStarted); */
+  /*   b_ctx->createFileCalled = false; */
+  /*   return CF_ERROR; */
+  /* } */
 
   retval = PlugFunc(plugin)->createFile(ctx, &rp);
   if (retval != bRC_OK) {
