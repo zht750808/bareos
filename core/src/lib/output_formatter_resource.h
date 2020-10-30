@@ -49,7 +49,8 @@ class OutputFormatterResource {
   void KeyMultipleStringsOnePerLineAddItem(const char* key,
                                            const char* item,
                                            bool as_comment,
-                                           bool quoted_strings);
+                                           bool quoted_strings,
+                                           bool escape_strings);
 
 
  public:
@@ -64,11 +65,14 @@ class OutputFormatterResource {
   std::string GetKeyFormatString(bool inherited,
                                  std::string baseformat = "%s = ");
 
-  void ResourceTypeStart(const char* name, bool as_comment = false);
-  void ResourceTypeEnd(const char* name, bool as_comment = false);
-
-  void ResourceStart(const char* name);
-  void ResourceEnd(const char* name);
+  void ResourceStart(const char* resource_type_groupname,
+                     const char* resource_type_name,
+                     const char* resource_name,
+                     bool as_comment = false);
+  void ResourceEnd(const char* resource_type_groupname,
+                   const char* resource_type_name,
+                   const char* resource_name,
+                   bool as_comment = false);
 
   void SubResourceStart(const char* name,
                         bool as_comment = false,
@@ -118,18 +122,21 @@ class OutputFormatterResource {
   void KeyMultipleStringsOnePerLine(const char* key,
                                     alist* list,
                                     bool as_comment = false,
-                                    bool quoted_strings = true);
+                                    bool quoted_strings = true,
+                                    bool escape_strings = false);
 
   void KeyMultipleStringsOnePerLine(const char* key,
                                     alist* list,
                                     std::function<const char*(void*)> GetValue,
                                     bool as_comment = false,
-                                    bool quoted_strings = true);
+                                    bool quoted_strings = true,
+                                    bool escape_strings = false);
 
   void KeyMultipleStringsOnePerLine(const char* key,
                                     const std::vector<std::string>&,
                                     bool as_comment = false,
-                                    bool quoted_strings = true);
+                                    bool quoted_strings = true,
+                                    bool escape_strings = false);
 
   void ArrayStart(const char* key,
                   bool as_comment = false,

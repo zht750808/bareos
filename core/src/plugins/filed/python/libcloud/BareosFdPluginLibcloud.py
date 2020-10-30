@@ -23,7 +23,11 @@
 import BareosFdPluginBaseclass
 import bareosfd
 from bareosfd import *
-import ConfigParser as configparser
+
+try:
+    import ConfigParser as configparser
+except ImportError:
+    import configparser
 import datetime
 import dateutil.parser
 from bareos_libcloud_api.bucket_explorer import TASK_TYPE
@@ -44,6 +48,21 @@ from libcloud.storage.types import Provider
 from libcloud.storage.types import ObjectDoesNotExistError
 from sys import version_info
 from distutils.util import strtobool
+
+class StringCodec:
+    @staticmethod
+    def encode_for_backup(var):
+        if version_info.major < 3:
+            return var.encode("utf-8")
+        else:
+            return var
+
+    @staticmethod
+    def encode_for_restore(var):
+        if version_info.major < 3:
+            return var
+        else:
+            return var.encode("utf-8")
 
 
 class FilenameConverter:
@@ -74,7 +93,7 @@ class BareosFdPluginLibcloud(BareosFdPluginBaseclass.BareosFdPluginBaseclass):
 
         super(BareosFdPluginLibcloud, self).__init__(plugindef)
         super(BareosFdPluginLibcloud, self).parse_plugin_definition(plugindef)
-        self.options["treat_download_errors_as_warnings"] = False
+        self.options["fail_on_download_error"] = False
         self.__parse_options()
 
         self.last_run = datetime.datetime.fromtimestamp(self.since)
@@ -146,7 +165,7 @@ class BareosFdPluginLibcloud(BareosFdPluginBaseclass.BareosFdPluginBaseclass):
             "temporary_download_directory",
         ]
         optional_options = {}
-        optional_options["misc"] = ["treat_download_errors_as_warnings"]
+        optional_options["misc"] = ["fail_on_download_error"]
 
         # this maps config file options to libcloud options
         option_map = {
@@ -202,7 +221,7 @@ class BareosFdPluginLibcloud(BareosFdPluginBaseclass.BareosFdPluginBaseclass):
             if self.config.has_option(section, option):
                 try:
                     value = self.config.get(section, option)
-                    self.options["treat_download_errors_as_warnings"] = strtobool(value)
+                    self.options["fail_on_download_error"] = strtobool(value)
                 except:
                     debugmessage(
                         100,
@@ -229,8 +248,7 @@ class BareosFdPluginLibcloud(BareosFdPluginBaseclass.BareosFdPluginBaseclass):
             return bRC_Error
 
         jobmessage(
-            M_INFO,
-            "Connected, last backup: %s (ts: %s)" % (self.last_run, self.since),
+            M_INFO, "Connected, last backup: %s (ts: %s)" % (self.last_run, self.since),
         )
 
         try:
@@ -277,9 +295,7 @@ class BareosFdPluginLibcloud(BareosFdPluginBaseclass.BareosFdPluginBaseclass):
         while self.active:
             worker_result = self.api.check_worker_messages()
             if worker_result == ERROR:
-                if self.options["treat_download_errors_as_warnings"]:
-                    pass
-                else:
+                if self.options["fail_on_download_error"]:
                     self.active = False
                     error = True
             elif worker_result == ABORT:
@@ -310,13 +326,13 @@ class BareosFdPluginLibcloud(BareosFdPluginBaseclass.BareosFdPluginBaseclass):
         debugmessage(100, "Backup file: %s" % (filename,))
 
         statp = bareosfd.StatPacket()
-#        statp.size = self.current_backup_task["size"]
-#        statp.mtime = self.current_backup_task["mtime"]
-#        statp.atime = 0
-#        statp.ctime = 0
+        # statp.size = self.current_backup_task["size"]
+        # statp.mtime = self.current_backup_task["mtime"]
+        # statp.atime = 0
+        # statp.ctime = 0
 
         savepkt.statp = statp
-        savepkt.fname = filename
+        savepkt.fname = StringCodec.encode_for_backup(filename)
         savepkt.type = FT_REG
 
         if self.current_backup_task["type"] == TASK_TYPE.DOWNLOADED:
@@ -332,20 +348,20 @@ class BareosFdPluginLibcloud(BareosFdPluginBaseclass.BareosFdPluginBaseclass):
             try:
                 self.FILE = IterStringIO(self.current_backup_task["data"].as_stream())
             except ObjectDoesNotExistError:
-                if self.options["treat_download_errors_as_warnings"]:
-                    jobmessage(
-                        M_WARNING,
-                        "Skipped file %s because it does not exist anymore"
-                        % (self.current_backup_task["name"]),
-                    )
-                    return bRC_Skip
-                else:
+                if self.options["fail_on_download_error"]:
                     jobmessage(
                         M_ERROR,
                         "File %s does not exist anymore"
                         % (self.current_backup_task["name"]),
                     )
                     return bRC_Error
+                else:
+                    jobmessage(
+                        M_WARNING,
+                        "Skipped file %s because it does not exist anymore"
+                        % (self.current_backup_task["name"]),
+                    )
+                    return bRC_Skip
 
         else:
             raise Exception(value='Wrong argument for current_backup_task["type"]')
@@ -357,7 +373,7 @@ class BareosFdPluginLibcloud(BareosFdPluginBaseclass.BareosFdPluginBaseclass):
             100, "create_file() entry point in Python called with %s\n" % (restorepkt)
         )
         FNAME = FilenameConverter.BackupToBucket(restorepkt.ofname)
-        dirname = os.path.dirname(FNAME)
+        dirname = StringCodec.encode_for_restore(os.path.dirname(FNAME))
         if not os.path.exists(dirname):
             jobmessage(M_INFO, "Directory %s does not exist, creating it\n" % dirname)
             os.makedirs(dirname)
@@ -371,7 +387,12 @@ class BareosFdPluginLibcloud(BareosFdPluginBaseclass.BareosFdPluginBaseclass):
         if IOP.func == IO_OPEN:
             # Only used by the 'restore' path
             if IOP.flags & (os.O_CREAT | os.O_WRONLY):
-                self.FILE = open(FilenameConverter.BackupToBucket(IOP.fname), "wb")
+                self.FILE = open(
+                    StringCodec.encode_for_restore(
+                        FilenameConverter.BackupToBucket(IOP.fname)
+                    ),
+                    "wb",
+                )
             return bRC_OK
 
         elif IOP.func == IO_READ:
@@ -395,10 +416,10 @@ class BareosFdPluginLibcloud(BareosFdPluginBaseclass.BareosFdPluginBaseclass):
                     ),
                 )
                 IOP.status = 0
-                if self.options["treat_download_errors_as_warnings"]:
-                    return bRC_Skip
-                else:
+                if self.options["fail_on_download_error"]:
                     return bRC_Error
+                else:
+                    return bRC_Skip
 
         elif IOP.func == IO_WRITE:
             try:

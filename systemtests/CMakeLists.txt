@@ -274,7 +274,8 @@ macro(prepare_test)
   math(EXPR sd2_port "${BASEPORT} + 3")
   math(EXPR php_port "${BASEPORT} + 4")
   math(EXPR test_db_port "${BASEPORT} + 5")
-  math(EXPR restapi_port "${BASEPORT} + 6")
+  math(EXPR restapi_port "${BASEPORT} + 7")
+  math(EXPR minio_port "${BASEPORT} + 6")
 
   # skip for tests without etc/bareos ("catalog" test)
   if(EXISTS ${current_test_source_directory}/etc/bareos)
@@ -310,7 +311,6 @@ set(ALL_BINARIES_BEING_USED_BY_SYSTEMTESTS
     bscan
     bconsole
     bsmtp
-    timelimit
     bwild
     bpluginfo
     bsmtp
@@ -546,6 +546,7 @@ set(SYSTEM_TESTS
     config-dump
     encrypt-signature
     encrypt-signature-tls-cert
+    filesets
     notls
     passive
     spool
@@ -596,11 +597,14 @@ else()
   list(APPEND SYSTEM_TESTS_DISABLED acl)
 endif()
 
-if(TARGET droplet)
+if(TARGET droplet
+   AND S3CMD
+   AND MINIO)
   list(APPEND SYSTEM_TESTS droplet-s3)
 else()
   list(APPEND SYSTEM_TESTS_DISABLED droplet-s3)
 endif()
+
 if(SD_GFAPI_DIR_TO_TEST AND glusterfs_uri)
   list(APPEND SYSTEM_TESTS glusterfs-backend)
 else()
@@ -679,6 +683,7 @@ else()
   list(APPEND SYSTEM_TESTS_DISABLED "py3plug-fd-local-fileset")
 endif()
 
+<<<<<<< HEAD
 if(TARGET python-fd)
   list(APPEND SYSTEM_TESTS "py2plug-fd-split-jobs")
 else()
@@ -692,6 +697,35 @@ else()
 endif()
 
 
+=======
+set(SYSTEMTEST_LDAP_ADDRESS
+    ""
+    CACHE STRING "address of LDAP server for Plugin test"
+)
+set(SYSTEMTEST_LDAP_BASEDN
+    "dc=example,dc=org"
+    CACHE STRING "LDAP base DN for plugin test"
+)
+set(SYSTEMTEST_LDAP_BINDDN
+    "cn=admin,dc=example,dc=org"
+    CACHE STRING "LDAP bind DN for plugin test"
+)
+set(SYSTEMTEST_LDAP_PASSWORD
+    "admin"
+    CACHE STRING "LDAP bind password for plugin test"
+)
+check_pymodule_available(2 ldap)
+if(TARGET python-fd
+   AND PYMODULE_2_LDAP_FOUND
+   AND Python2_EXECUTABLE
+   AND SYSTEMTEST_LDAP_ADDRESS
+)
+  list(APPEND SYSTEM_TESTS "py2plug-fd-ldap")
+else()
+  list(APPEND SYSTEM_TESTS_DISABLED "py2plug-fd-ldap")
+endif()
+
+>>>>>>> master
 check_pymodule_available(2 libcloud)
 check_pymodule_available(3 libcloud)
 if(TARGET python-fd)
@@ -951,6 +985,7 @@ foreach(TEST_NAME ${SYSTEM_TESTS})
   string(
     CONCAT
       pythonpath
+      "${CMAKE_SOURCE_DIR}/core/src/plugins/filed/python/ldap:"
       "${CMAKE_SOURCE_DIR}/core/src/plugins/filed/python/libcloud:"
       "${CMAKE_SOURCE_DIR}/core/src/plugins/filed/python/percona-xtrabackup:"
       "${CMAKE_SOURCE_DIR}/core/src/plugins/filed/python/ovirt:"

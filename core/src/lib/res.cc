@@ -140,6 +140,15 @@ const char* ConfigurationParser::ResToStr(int rcode) const
   }
 }
 
+const char* ConfigurationParser::ResGroupToStr(int rcode) const
+{
+  if (rcode < r_first_ || rcode > r_last_) {
+    return _("***UNKNOWN***");
+  } else {
+    return resources_[rcode - r_first_].groupname;
+  }
+}
+
 bool ConfigurationParser::GetTlsPskByFullyQualifiedResourceName(
     ConfigurationParser* config,
     const char* fq_name_in,
@@ -657,32 +666,16 @@ void ConfigurationParser::StoreAlistRes(LEX* lc,
                                         int index,
                                         int pass)
 {
-  int i = 0;
-  alist* list;
-  int count = str_to_int32(item->default_value);
-
+  alist** alistvalue = GetItemVariablePointer<alist**>(*item);
   if (pass == 2) {
-    alist** alistvalue = GetItemVariablePointer<alist**>(*item);
+    if (!*alistvalue) { *alistvalue = new alist(10, not_owned_by_alist); }
+  }
+  alist* list = *alistvalue;
 
-    if (count == 0) { /* always store in item->value */
-      i = 0;
-      if (!alistvalue[i]) { alistvalue[i] = new alist(10, not_owned_by_alist); }
-    } else {
-      /*
-       * Find empty place to store this directive
-       */
-      while ((alistvalue)[i] != NULL && i++ < count) {}
-      if (i >= count) {
-        scan_err4(lc, _("Too many %s directives. Max. is %d. line %d: %s\n"),
-                  lc->str, count, lc->line_no, lc->line);
-        return;
-      }
-      alistvalue[i] = new alist(10, not_owned_by_alist);
-    }
-    list = alistvalue[i];
-
-    for (;;) {
-      LexGetToken(lc, BCT_NAME); /* scan next item */
+  int token = BCT_COMMA;
+  while (token == BCT_COMMA) {
+    LexGetToken(lc, BCT_NAME); /* scan next item */
+    if (pass == 2) {
       BareosResource* res = GetResWithName(item->code, lc->str);
       if (res == NULL) {
         scan_err3(lc,
@@ -691,16 +684,12 @@ void ConfigurationParser::StoreAlistRes(LEX* lc,
                   item->name, lc->line_no, lc->line);
         return;
       }
-      Dmsg5(900, "Append %p to alist %p size=%d i=%d %s\n", res, list,
-            list->size(), i, item->name);
+      Dmsg5(900, "Append %p (%s) to alist %p size=%d %s\n", res,
+            res->resource_name_, list, list->size(), item->name);
       list->append(res);
-      if (lc->ch != ',') { /* if no other item follows */
-        break;             /* get out */
-      }
-      LexGetToken(lc, BCT_ALL); /* eat comma */
     }
+    token = LexGetToken(lc, BCT_ALL);
   }
-  ScanToEol(lc);
   SetBit(index, (*item->allocated_resource)->item_present_);
   ClearBit(index, (*item->allocated_resource)->inherit_content_);
 }
@@ -713,25 +702,32 @@ void ConfigurationParser::StoreStdVectorStr(LEX* lc,
                                             int index,
                                             int pass)
 {
+  std::vector<std::string>* list{nullptr};
   if (pass == 2) {
-    std::vector<std::string>* list =
-        GetItemVariablePointer<std::vector<std::string>*>(*item);
-    LexGetToken(lc, BCT_STRING); /* scan next item */
-    Dmsg4(900, "Append %s to vector %p size=%d %s\n", lc->str, list,
-          list->size(), item->name);
-
-    /*
-     * See if we need to drop the default value from the alist.
-     *
-     * We first check to see if the config item has the CFG_ITEM_DEFAULT
-     * flag set and currently has exactly one entry.
-     */
-    if ((item->flags & CFG_ITEM_DEFAULT) && list->size() == 1) {
-      if (list->at(0) == item->default_value) { list->clear(); }
-    }
-    list->push_back(lc->str);
+    list = GetItemVariablePointer<std::vector<std::string>*>(*item);
   }
-  ScanToEol(lc);
+  int token = BCT_COMMA;
+  while (token == BCT_COMMA) {
+    LexGetToken(lc, BCT_STRING); /* scan next item */
+    if (pass == 2) {
+      Dmsg4(900, "Append %s to vector %p size=%d %s\n", lc->str, list,
+            list->size(), item->name);
+
+      /*
+       * See if we need to drop the default value.
+       *
+       * We first check to see if the config item has the CFG_ITEM_DEFAULT
+       * flag set and currently has exactly one entry.
+       */
+      if (!BitIsSet(index, (*item->allocated_resource)->item_present_)) {
+        if ((item->flags & CFG_ITEM_DEFAULT) && list->size() == 1) {
+          if (list->at(0) == item->default_value) { list->clear(); }
+        }
+      }
+      list->push_back(lc->str);
+    }
+    token = LexGetToken(lc, BCT_ALL);
+  }
   SetBit(index, (*item->allocated_resource)->item_present_);
   ClearBit(index, (*item->allocated_resource)->inherit_content_);
 }
@@ -744,34 +740,39 @@ void ConfigurationParser::StoreAlistStr(LEX* lc,
                                         int index,
                                         int pass)
 {
+  alist** alistvalue = GetItemVariablePointer<alist**>(*item);
   if (pass == 2) {
-    alist** alistvalue = GetItemVariablePointer<alist**>(*item);
     if (!*alistvalue) { *alistvalue = new alist(10, owned_by_alist); }
-    alist* list = *alistvalue;
-
-    LexGetToken(lc, BCT_STRING); /* scan next item */
-    Dmsg4(900, "Append %s to alist %p size=%d %s\n", lc->str, list,
-          list->size(), item->name);
-
-    /*
-     * See if we need to drop the default value from the alist.
-     *
-     * We first check to see if the config item has the CFG_ITEM_DEFAULT
-     * flag set and currently has exactly one entry.
-     */
-    if ((item->flags & CFG_ITEM_DEFAULT) && list->size() == 1) {
-      char* entry;
-
-      entry = (char*)list->first();
-      if (bstrcmp(entry, item->default_value)) {
-        list->destroy();
-        list->init(10, owned_by_alist);
-      }
-    }
-
-    list->append(strdup(lc->str));
   }
-  ScanToEol(lc);
+  alist* list = *alistvalue;
+
+  int token = BCT_COMMA;
+  while (token == BCT_COMMA) {
+    LexGetToken(lc, BCT_STRING); /* scan next item */
+
+    if (pass == 2) {
+      Dmsg4(900, "Append %s to alist %p size=%d %s\n", lc->str, list,
+            list->size(), item->name);
+
+      /*
+       * See if we need to drop the default value from the alist.
+       *
+       * We first check to see if the config item has the CFG_ITEM_DEFAULT
+       * flag set and currently has exactly one entry.
+       */
+      if (!BitIsSet(index, (*item->allocated_resource)->item_present_)) {
+        if ((item->flags & CFG_ITEM_DEFAULT) && list->size() == 1) {
+          char* entry = (char*)list->first();
+          if (bstrcmp(entry, item->default_value)) {
+            list->destroy();
+            list->init(10, owned_by_alist);
+          }
+        }
+      }
+      list->append(strdup(lc->str));
+    }
+    token = LexGetToken(lc, BCT_ALL);
+  }
   SetBit(index, (*item->allocated_resource)->item_present_);
   ClearBit(index, (*item->allocated_resource)->inherit_content_);
 }
@@ -831,27 +832,41 @@ void ConfigurationParser::StorePluginNames(LEX* lc,
                                            int index,
                                            int pass)
 {
-  if (pass == 2) {
-    char *p, *plugin_name, *plugin_names;
-    LexGetToken(lc, BCT_STRING); /* scan next item */
-
-    alist** alistvalue = GetItemVariablePointer<alist**>(*item);
-    if (!*alistvalue) { *alistvalue = new alist(10, owned_by_alist); }
-    alist* list = *alistvalue;
-
-    plugin_names = strdup(lc->str);
-    plugin_name = plugin_names;
-    while (plugin_name) {
-      if ((p = strchr(plugin_name, ':'))) { /* split string at ':' */
-        *p++ = '\0';
-      }
-
-      list->append(strdup(plugin_name));
-      plugin_name = p;
-    }
-    free(plugin_names);
+  if (pass == 1) {
+    ScanToEol(lc);
+    return;
   }
-  ScanToEol(lc);
+
+  alist** alistvalue = GetItemVariablePointer<alist**>(*item);
+  if (!*alistvalue) { *alistvalue = new alist(10, owned_by_alist); }
+
+  bool finish = false;
+  while (!finish) {
+    switch (LexGetToken(lc, BCT_ALL)) {
+      case BCT_EOL:
+        finish = true;
+        break;
+      case BCT_COMMA:
+        continue;
+      case BCT_UNQUOTED_STRING:
+      case BCT_QUOTED_STRING: {
+        char* p0 = strdup(lc->str);
+        char* p1 = p0;
+        char* p2 = p0;
+        while (p1) {
+          p2 = strchr(p1, ':'); // split at ':'
+          if (p2 != nullptr) { *p2++ = '\0'; }
+          (*alistvalue)->append(strdup(p1));
+          p1 = p2;
+        }
+        free(p0);
+        break;
+      }
+      default:
+        finish = true;
+        break;
+    }
+  }
   SetBit(index, (*item->allocated_resource)->item_present_);
   ClearBit(index, (*item->allocated_resource)->inherit_content_);
 }
@@ -1503,39 +1518,7 @@ void IndentConfigItem(PoolMem& cfg_str,
 
 std::string PrintNumberSiPrefixFormat(ResourceItem* item, uint64_t value_in)
 {
-  PoolMem temp;
-  PoolMem volspec; /* vol specification string*/
-  uint64_t value = value_in;
-  int factor;
-
-  /*
-   * convert default value string to numeric value
-   */
-  static const char* modifier[] = {"g", "m", "k", "", NULL};
-  const uint64_t multiplier[] = {
-      1073741824, /* gibi */
-      1048576,    /* mebi */
-      1024,       /* kibi */
-      1           /* byte */
-  };
-
-  if (value == 0) {
-    PmStrcat(volspec, "0");
-  } else {
-    for (int t = 0; modifier[t]; t++) {
-      Dmsg2(200, " %s bytes: %lld\n", item->name, value);
-      factor = value / multiplier[t];
-      value = value % multiplier[t];
-      if (factor > 0) {
-        Mmsg(temp, "%d %s ", factor, modifier[t]);
-        PmStrcat(volspec, temp.c_str());
-        Dmsg1(200, " volspec: %s\n", volspec.c_str());
-      }
-      if (value == 0) { break; }
-    }
-  }
-
-  return std::string(volspec.c_str());
+  return SizeAsSiPrefixFormat(value_in);
 }
 
 std::string Print32BitConfigNumberSiPrefixFormat(ResourceItem* item)
@@ -1662,8 +1645,7 @@ bool MessagesResource::PrintConfig(OutputFormatterResource& send,
 
   msgres = this;
 
-  send.ResourceTypeStart("Messages");
-  send.ResourceStart(resource_name_);
+  send.ResourceStart("Messages", "Messages", resource_name_);
 
   send.KeyQuotedString("Name", resource_name_);
 
@@ -1706,8 +1688,7 @@ bool MessagesResource::PrintConfig(OutputFormatterResource& send,
     }
   }
 
-  send.ResourceEnd(resource_name_);
-  send.ResourceTypeEnd("Messages");
+  send.ResourceEnd("Messages", "Messages", resource_name_);
 
   return true;
 }
@@ -2030,9 +2011,9 @@ void BareosResource::PrintResourceItem(ResourceItem& item,
       /*
        * Each member of the list is comma-separated
        */
-      send.KeyMultipleStringsOnePerLine(item.name,
-                                        GetItemVariable<alist*>(item),
-                                        GetResourceName, inherited, true);
+      send.KeyMultipleStringsOnePerLine(
+          item.name, GetItemVariable<alist*>(item), GetResourceName, inherited,
+          true, false);
       break;
     }
     case CFG_TYPE_RES: {
@@ -2121,8 +2102,8 @@ bool BareosResource::PrintConfig(OutputFormatterResource& send,
 
   *my_config.resources_[rindex].allocated_resource_ = this;
 
-  send.ResourceTypeStart(my_config.ResToStr(rcode_), internal_);
-  send.ResourceStart(resource_name_);
+  send.ResourceStart(my_config.ResGroupToStr(rcode_),
+                     my_config.ResToStr(rcode_), resource_name_, internal_);
 
   for (int i = 0; items[i].name; i++) {
     bool inherited = BitIsSet(i, inherit_content_);
@@ -2131,8 +2112,8 @@ bool BareosResource::PrintConfig(OutputFormatterResource& send,
                       verbose);
   }
 
-  send.ResourceEnd(resource_name_);
-  send.ResourceTypeEnd(my_config.ResToStr(rcode_), internal_);
+  send.ResourceEnd(my_config.ResGroupToStr(rcode_), my_config.ResToStr(rcode_),
+                   resource_name_, internal_);
 
   return true;
 }

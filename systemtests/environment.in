@@ -53,6 +53,7 @@ export BAREOS_DIRECTOR_PORT=@dir_port@
 export BAREOS_STORAGE_PORT=@sd_port@
 export BAREOS_STORAGE2_PORT=@sd2_port@
 export BAREOS_FD_PORT=@fd_port@
+export MINIO_PORT=@minio_port@
 
 export BAREOS_DIRECTOR_BINARY=@BAREOS_DIR_BINARY@
 export BAREOS_FILEDAEMON_BINARY=@BAREOS_FD_BINARY@
@@ -106,10 +107,11 @@ export PYTHON_EXECUTABLE=@PYTHON_EXECUTABLE@
 
 export OVIRT_SERVER=@ovirt_server@
 
-# real postgres binaries are hidden on debian, instead there are wrappers
-# which we do not want for our tests
+# Real postgres binaries are hidden on debian, instead there are wrappers
+# which we do not want for our tests.
+# If there are multiple version, select the first.
 if [ -d /usr/lib/postgresql  ]; then
-  POSTGRES_BINARY_DIR=$(dirname $(find -L /usr/lib/postgresql | grep psql))
+  POSTGRES_BINARY_DIR=$(dirname $(find -L /usr/lib/postgresql -name psql | sort | head -n 1))
   export PATH=$POSTGRES_BINARY_DIR:$PATH
 else
   export PATH=/sbin:/usr/sbin:$PATH
@@ -121,6 +123,11 @@ export BAREOS_TEST_RUNNING=yes
 
 MINIO=@MINIO@
 S3CMD="@S3CMD@"
-S3CFG="${PROJECT_SOURCE_DIR}/s3cfg"
+S3CFG="${current_test_directory}/etc/s3cfg"
 
 SYSTEMTESTS_DIR=@CMAKE_CURRENT_SOURCE_DIR@
+
+SYSTEMTEST_LDAP_ADDRESS="@SYSTEMTEST_LDAP_ADDRESS@"
+SYSTEMTEST_LDAP_BASEDN="@SYSTEMTEST_LDAP_BASEDN@"
+SYSTEMTEST_LDAP_BINDDN="@SYSTEMTEST_LDAP_BINDDN@"
+SYSTEMTEST_LDAP_PASSWORD="@SYSTEMTEST_LDAP_PASSWORD@"

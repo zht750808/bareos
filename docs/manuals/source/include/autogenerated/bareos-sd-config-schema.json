@@ -75,6 +75,7 @@
           "code": 0,
           "platform_specific": true,
           "equals": true,
+          "versions": "20.0.0-",
           "description": "OpenSSL Configuration: Protocol"
         },
         "TlsVerifyPeer": {
@@ -216,7 +217,7 @@
         "BackendDirectory": {
           "datatype": "DIRECTORY_LIST",
           "code": 0,
-          "default_value": "/usr/local/lib64/bareos/backends",
+          "default_value": "/usr/lib/bareos/backends",
           "platform_specific": true,
           "equals": true
         },
@@ -434,6 +435,7 @@
           "code": 0,
           "platform_specific": true,
           "equals": true,
+          "versions": "20.0.0-",
           "description": "OpenSSL Configuration: Protocol"
         },
         "TlsVerifyPeer": {

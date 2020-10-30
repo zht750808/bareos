@@ -29,11 +29,16 @@ This following shell script will show how to build the **Bareos test-environment
 Configure (cmake) build settings
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+.. note::
+
+   To buil bareos, at least **cmake version 3.12** is required.
+
+
 Bareos cmake configuration allows a lot of different defines to be set.
 For the test-environment, we use the minimal defines required to run the tests.
 
 When interested in the cmake defines for the Bareos production packages,
-please refer to the corresponding build desciptions:
+please refer to the corresponding build descriptions:
 
   * Debian Packages: `debian/rules <https://github.com/bareos/bareos/blob/master/core/debian/rules>`__
   * RPM Packages: `core/platforms/packaging/bareos.spec <https://github.com/bareos/bareos/blob/master/core/platforms/packaging/bareos.spec>`__
@@ -108,7 +113,8 @@ Run all system tests
          Start  2: system:backup-bareos-passive-test
    ...
 
-Instead of using :commmand:`make test`, :command:`ctest` can directly invoked.
+
+Instead of using :command:`make test` , :command:`ctest` can be directly invoked.
 This offers some advantages, like being able to run multiple tests in parallel with
 :command:`ctest -j <number of parallel tests>`.
 Only jobs with names matching a certain regular expression can be run with

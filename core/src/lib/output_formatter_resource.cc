@@ -28,7 +28,7 @@
 #include "lib/util.h"
 #include "lib/output_formatter_resource.h"
 
-const char* GetAsString(void* item) { return (const char*)item; }
+const char* GetAsCString(void* item) { return (const char*)item; }
 
 OutputFormatterResource::OutputFormatterResource(OutputFormatter* send,
                                                  int indent_level)
@@ -82,28 +82,32 @@ std::string OutputFormatterResource::GetKeyFormatString(bool inherited,
   return format;
 }
 
-void OutputFormatterResource::ResourceTypeStart(const char* name,
-                                                bool as_comment)
-{
-  send_->ObjectStart(name, GetKeyFormatString(as_comment, "%s {\n").c_str());
-  indent_level_++;
-}
-
-void OutputFormatterResource::ResourceTypeEnd(const char* name, bool as_comment)
-{
-  indent_level_--;
-  send_->ObjectEnd(name, GetKeyFormatString(as_comment, "}\n\n").c_str());
-}
-
-void OutputFormatterResource::ResourceStart(const char* name)
+void OutputFormatterResource::ResourceStart(const char* resource_type_groupname,
+                                            const char* resource_type_name,
+                                            const char* resource_name,
+                                            bool as_comment)
 {
   const bool case_sensitive_name = true;
-  send_->ObjectStart(name, nullptr, case_sensitive_name);
+  /*
+   * Use resource_type_groupname as structure key (JSON),
+   * but use resource_type_name when writing config resources.
+   */
+  std::string format = std::string(resource_type_name) + std::string(" {\n");
+  send_->ObjectStart(resource_type_groupname,
+                     GetKeyFormatString(as_comment, format).c_str());
+  indent_level_++;
+  send_->ObjectStart(resource_name, nullptr, case_sensitive_name);
 }
 
-void OutputFormatterResource::ResourceEnd(const char* name)
+void OutputFormatterResource::ResourceEnd(const char* resource_type_groupname,
+                                          const char* resource_type_name,
+                                          const char* resource_name,
+                                          bool as_comment)
 {
-  send_->ObjectEnd(name);
+  send_->ObjectEnd(resource_name);
+  indent_level_--;
+  send_->ObjectEnd(resource_type_groupname,
+                   GetKeyFormatString(as_comment, "}\n\n").c_str());
 }
 
 void OutputFormatterResource::SubResourceStart(const char* name,
@@ -225,7 +229,7 @@ void OutputFormatterResource::KeyMultipleStringsInOneLine(const char* key,
                                                           bool as_comment,
                                                           bool quoted_strings)
 {
-  KeyMultipleStringsInOneLine(key, list, GetAsString, as_comment,
+  KeyMultipleStringsInOneLine(key, list, GetAsCString, as_comment,
                               quoted_strings);
 }
 
@@ -234,14 +238,15 @@ void OutputFormatterResource::KeyMultipleStringsOnePerLineAddItem(
     const char* key,
     const char* item,
     bool as_comment,
-    bool quoted_strings)
+    bool quoted_strings,
+    bool escape_strings)
 {
   PoolMem lineformat;
   std::string escItem;
   const char* value = item;
   std::string format = GetKeyFormatString(as_comment) + "%s\n";
   if (quoted_strings) { format = GetKeyFormatString(as_comment) + "\"%s\"\n"; }
-  if (requiresEscaping(item)) {
+  if (escape_strings || requiresEscaping(item)) {
     escItem = EscapeString(item);
     value = escItem.c_str();
   }
@@ -255,7 +260,8 @@ void OutputFormatterResource::KeyMultipleStringsOnePerLine(
     alist* list,
     std::function<const char*(void* item)> GetValue,
     bool as_comment,
-    bool quoted_strings)
+    bool quoted_strings,
+    bool escape_strings)
 {
   /*
    * One line for each member of the list
@@ -272,7 +278,7 @@ void OutputFormatterResource::KeyMultipleStringsOnePerLine(
     send_->ArrayStart(key);
     foreach_alist (item, list) {
       KeyMultipleStringsOnePerLineAddItem(key, GetValue(item), as_comment,
-                                          quoted_strings);
+                                          quoted_strings, escape_strings);
     }
     send_->ArrayEnd(key);
   }
@@ -282,10 +288,11 @@ void OutputFormatterResource::KeyMultipleStringsOnePerLine(
 void OutputFormatterResource::KeyMultipleStringsOnePerLine(const char* key,
                                                            alist* list,
                                                            bool as_comment,
-                                                           bool quoted_strings)
+                                                           bool quoted_strings,
+                                                           bool escape_strings)
 {
-  KeyMultipleStringsOnePerLine(key, list, GetAsString, as_comment,
-                               quoted_strings);
+  KeyMultipleStringsOnePerLine(key, list, GetAsCString, as_comment,
+                               quoted_strings, escape_strings);
 }
 
 
@@ -293,7 +300,8 @@ void OutputFormatterResource::KeyMultipleStringsOnePerLine(
     const char* key,
     const std::vector<std::string>& list,
     bool as_comment,
-    bool quoted_strings)
+    bool quoted_strings,
+    bool escape_strings)
 {
   if (list.empty()) {
     if (as_comment) {
@@ -305,7 +313,7 @@ void OutputFormatterResource::KeyMultipleStringsOnePerLine(
     send_->ArrayStart(key);
     for (const std::string& item : list) {
       KeyMultipleStringsOnePerLineAddItem(key, item.c_str(), as_comment,
-                                          quoted_strings);
+                                          quoted_strings, escape_strings);
     }
     send_->ArrayEnd(key);
   }
