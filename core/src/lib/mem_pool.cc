@@ -289,16 +289,12 @@ void GarbageCollectMemoryPool()
 void CloseMemoryPool()
 {
   struct abufhead *buf, *next;
-  int count = 0;
-  uint64_t bytes = 0;
 
   P(mutex);
   for (int i = 1; i <= PM_MAX; i++) {
     buf = pool_ctl[i].free_buf;
     while (buf) {
       next = buf->next;
-      count++;
-      bytes += SizeofPoolMemory((char*)buf);
       free((char*)buf);
       buf = next;
     }
