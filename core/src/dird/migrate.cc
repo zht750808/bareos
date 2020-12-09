@@ -1917,17 +1917,12 @@ void MigrationCleanup(JobControlRecord* jcr, int TermCode)
            * storage daemon we need to add data normally send to the director
            * via the FHDB interface here.
            */
-          switch (jcr->impl->res.client->Protocol) {
-            case APT_NDMPV2:
-            case APT_NDMPV3:
-            case APT_NDMPV4:
-              Mmsg(query, sql_migrate_ndmp_metadata, new_jobid, old_jobid,
-                   new_jobid);
-              mig_jcr->db->SqlQuery(query.c_str());
-              break;
-            default:
-              break;
+          if (!isAuthProtocolTypeNative(jcr->impl->res.client->Protocol)) {
+            Mmsg(query, sql_migrate_ndmp_metadata, new_jobid, old_jobid,
+                 new_jobid);
+            mig_jcr->db->SqlQuery(query.c_str());
           }
+
 
           ua = new_ua_context(jcr);
           if (jcr->impl->res.job->PurgeMigrateJob) {
@@ -1964,16 +1959,10 @@ void MigrationCleanup(JobControlRecord* jcr, int TermCode)
            * storage daemon we need to add data normally send to the director
            * via the FHDB interface here.
            */
-          switch (jcr->impl->res.client->Protocol) {
-            case APT_NDMPV2:
-            case APT_NDMPV3:
-            case APT_NDMPV4:
-              Mmsg(query, sql_copy_ndmp_metadata, new_jobid, old_jobid,
-                   new_jobid);
-              mig_jcr->db->SqlQuery(query.c_str());
-              break;
-            default:
-              break;
+          if (isAuthProtocolTypeNDMP(jcr->impl->res.client->Protocol)) {
+            Mmsg(query, sql_copy_ndmp_metadata, new_jobid, old_jobid,
+                 new_jobid);
+            mig_jcr->db->SqlQuery(query.c_str());
           }
 
           Mmsg(query, "UPDATE Job SET Type='%c' WHERE JobId=%s",

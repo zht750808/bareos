@@ -2,7 +2,7 @@
    BAREOS® - Backup Archiving REcovery Open Sourced
 
    Copyright (C) 2011-2015 Planets Communications B.V.
-   Copyright (C) 2013-2019 Bareos GmbH & Co. KG
+   Copyright (C) 2013-2020 Bareos GmbH & Co. KG
 
    This program is Free Software; you can redistribute it and/or
    modify it under the terms of version three of the GNU Affero General Public
@@ -93,53 +93,43 @@ ndmp_backup_format_option* ndmp_lookup_backup_format_options(
  */
 bool NdmpValidateClient(JobControlRecord* jcr)
 {
-  switch (jcr->impl->res.client->Protocol) {
-    case APT_NDMPV2:
-    case APT_NDMPV3:
-    case APT_NDMPV4:
-      if (jcr->impl->res.client->password_.encoding != p_encoding_clear) {
-        Jmsg(jcr, M_FATAL, 0,
-             _("Client %s, has incompatible password encoding for running NDMP "
-               "backup.\n"),
-             jcr->impl->res.client->resource_name_);
-        return false;
-      }
-      break;
-    default:
+  if (isAuthProtocolTypeNDMP(jcr->impl->res.client->Protocol)) {
+    if (jcr->impl->res.client->password_.encoding != p_encoding_clear) {
       Jmsg(jcr, M_FATAL, 0,
-           _("Client %s, with backup protocol %s  not compatible for running "
-             "NDMP backup.\n"),
-           jcr->impl->res.client->resource_name_,
-           AuthenticationProtocolTypeToString(jcr->impl->res.client->Protocol));
+           _("Client %s, has incompatible password encoding for running NDMP "
+             "backup.\n"),
+           jcr->impl->res.client->resource_name_);
       return false;
+    }
+  } else {
+    Jmsg(jcr, M_FATAL, 0,
+         _("Client %s, with backup protocol %s  not compatible for running "
+           "NDMP backup.\n"),
+         jcr->impl->res.client->resource_name_,
+         AuthenticationProtocolTypeToString(jcr->impl->res.client->Protocol));
+    return false;
   }
-
   return true;
 }
 
 static inline bool NdmpValidateStorage(JobControlRecord* jcr,
                                        StorageResource* store)
 {
-  switch (store->Protocol) {
-    case APT_NDMPV2:
-    case APT_NDMPV3:
-    case APT_NDMPV4:
-      if (store->password_.encoding != p_encoding_clear) {
-        Jmsg(jcr, M_FATAL, 0,
-             _("Storage %s, has incompatible password encoding for running "
-               "NDMP backup.\n"),
-             store->resource_name_);
-        return false;
-      }
-      break;
-    default:
+  if (isAuthProtocolTypeNDMP(store->Protocol)) {
+    if (store->password_.encoding != p_encoding_clear) {
       Jmsg(jcr, M_FATAL, 0,
-           _("Storage %s has illegal backup protocol %s for NDMP backup\n"),
-           store->resource_name_,
-           AuthenticationProtocolTypeToString(store->Protocol));
+           _("Storage %s, has incompatible password encoding for running "
+             "NDMP backup.\n"),
+           store->resource_name_);
       return false;
+    }
+  } else {
+    Jmsg(jcr, M_FATAL, 0,
+         _("Storage %s has illegal backup protocol %s for NDMP backup\n"),
+         store->resource_name_,
+         AuthenticationProtocolTypeToString(store->Protocol));
+    return false;
   }
-
   return true;
 }
 
@@ -191,7 +181,7 @@ bool NdmpValidateJob(JobControlRecord* jcr, struct ndm_job_param* job)
  */
 static inline bool fill_ndmp_agent_config(JobControlRecord* jcr,
                                           struct ndmagent* agent,
-                                          uint32_t protocol,
+                                          AuthenticationProtocolType protocol,
                                           uint32_t authtype,
                                           char* address,
                                           uint32_t port,

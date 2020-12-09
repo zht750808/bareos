@@ -1,9 +1,7 @@
 /*
    BAREOS® - Backup Archiving REcovery Open Sourced
 
-   Copyright (C) 2000-2012 Free Software Foundation Europe e.V.
-   Copyright (C) 2011-2012 Planets Communications B.V.
-   Copyright (C) 2013-2020 Bareos GmbH & Co. KG
+   Copyright (C) 2020-2020 Bareos GmbH & Co. KG
 
    This program is Free Software; you can redistribute it and/or
    modify it under the terms of version three of the GNU Affero General Public
@@ -21,17 +19,20 @@
    02110-1301, USA.
 */
 
-#ifndef BAREOS_SRC_INCLUDE_AUTH_PROTOCOL_TYPES_H_
-#define BAREOS_SRC_INCLUDE_AUTH_PROTOCOL_TYPES_H_
 
-enum AuthenticationProtocolType
+#include "include/auth_protocol_types.h"
+
+bool isAuthProtocolTypeNative(AuthenticationProtocolType protocol)
 {
-  APT_NATIVE = 0,
-  APT_NDMPV2,
-  APT_NDMPV3,
-  APT_NDMPV4
-};
+  return protocol == APT_NATIVE;
+}
 
-bool isAuthProtocolTypeNative(AuthenticationProtocolType protocol);
-bool isAuthProtocolTypeNDMP(AuthenticationProtocolType protocol);
-#endif  // BAREOS_SRC_INCLUDE_AUTH_PROTOCOL_TYPES_H_
+bool isAuthProtocolTypeNDMP(AuthenticationProtocolType protocol)
+{
+  if ((protocol == APT_NDMPV2) || (protocol == APT_NDMPV3)
+      || (protocol == APT_NDMPV4)) {
+    return true;
+  } else {
+    return false;
+  }
+}

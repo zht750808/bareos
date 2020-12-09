@@ -2906,30 +2906,15 @@ static void StoreAutopassword(LEX* lc, ResourceItem* item, int index, int pass)
       }
       break;
     case R_CLIENT:
-      switch (res_client->Protocol) {
-        case APT_NDMPV2:
-        case APT_NDMPV3:
-        case APT_NDMPV4:
-          my_config->StoreResource(CFG_TYPE_CLEARPASSWORD, lc, item, index,
-                                   pass);
-          break;
-        default:
-          my_config->StoreResource(CFG_TYPE_MD5PASSWORD, lc, item, index, pass);
-          break;
-      }
-      break;
+      if (!isAuthProtocolTypeNative(res_client->Protocol))
+        my_config->StoreResource(CFG_TYPE_CLEARPASSWORD, lc, item, index, pass);
+      else
+        my_config->StoreResource(CFG_TYPE_MD5PASSWORD, lc, item, index, pass);
     case R_STORAGE:
-      switch (res_store->Protocol) {
-        case APT_NDMPV2:
-        case APT_NDMPV3:
-        case APT_NDMPV4:
-          my_config->StoreResource(CFG_TYPE_CLEARPASSWORD, lc, item, index,
-                                   pass);
-          break;
-        default:
-          my_config->StoreResource(CFG_TYPE_MD5PASSWORD, lc, item, index, pass);
-          break;
-      }
+      if (!isAuthProtocolTypeNative(res_store->Protocol))
+        my_config->StoreResource(CFG_TYPE_CLEARPASSWORD, lc, item, index, pass);
+      else
+        my_config->StoreResource(CFG_TYPE_MD5PASSWORD, lc, item, index, pass);
       break;
     case R_CATALOG:
       my_config->StoreResource(CFG_TYPE_CLEARPASSWORD, lc, item, index, pass);

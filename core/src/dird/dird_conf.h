@@ -36,6 +36,7 @@
 #include "lib/messages_resource.h"
 #include "lib/resource_item.h"
 #include "lib/tls_conf.h"
+#include "include/auth_protocol_types.h"
 
 class dlist;
 class json_t;
@@ -310,7 +311,8 @@ class ClientResource
   ClientResource() = default;
   virtual ~ClientResource() = default;
 
-  uint32_t Protocol = 0;       /* Protocol to use to connect */
+  AuthenticationProtocolType Protocol
+      = APT_NATIVE;            /* Protocol to use to connect */
   uint32_t AuthType = 0;       /* Authentication Type to use for protocol */
   uint32_t ndmp_loglevel = 0;  /* NDMP Protocol specific loglevel to use */
   uint32_t ndmp_blocksize = 0; /* NDMP Protocol specific blocksize to use */
@@ -357,7 +359,8 @@ class StorageResource
   StorageResource() = default;
   virtual ~StorageResource() = default;
 
-  uint32_t Protocol = 0;      /* Protocol to use to connect */
+  AuthenticationProtocolType Protocol
+      = APT_NATIVE;           /* Protocol to use to connect */
   uint32_t AuthType = 0;      /* Authentication Type to use for protocol */
   uint32_t SDport = 0;        /* Port where Directors connect */
   uint32_t SDDport = 0;       /* Data port for File daemon */

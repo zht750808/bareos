@@ -3,7 +3,7 @@
 
    Copyright (C) 2000-2010 Free Software Foundation Europe e.V.
    Copyright (C) 2011-2016 Planets Communications B.V.
-   Copyright (C) 2013-2019 Bareos GmbH & Co. KG
+   Copyright (C) 2013-2020 Bareos GmbH & Co. KG
 
    This program is Free Software; you can redistribute it and/or
    modify it under the terms of version three of the GNU Affero General Public
@@ -528,15 +528,10 @@ bool SelectNextRstore(JobControlRecord* jcr, bootstrap_info& info)
 
 void StorageStatus(UaContext* ua, StorageResource* store, char* cmd)
 {
-  switch (store->Protocol) {
-    case APT_NATIVE:
-      return DoNativeStorageStatus(ua, store, cmd);
-    case APT_NDMPV2:
-    case APT_NDMPV3:
-    case APT_NDMPV4:
-      return DoNdmpStorageStatus(ua, store, cmd);
-    default:
-      break;
+  if (isAuthProtocolTypeNDMP(store->Protocol)) {
+    return DoNativeStorageStatus(ua, store, cmd);
+  } else {
+    return DoNdmpStorageStatus(ua, store, cmd);
   }
 }
 
@@ -647,17 +642,10 @@ changer_vol_list_t* get_vol_list_from_storage(UaContext* ua,
   /*
    * Nothing cached or uncached data wanted so perform retrieval.
    */
-  switch (store->Protocol) {
-    case APT_NATIVE:
-      contents = native_get_vol_list(ua, store, listall, scan);
-      break;
-    case APT_NDMPV2:
-    case APT_NDMPV3:
-    case APT_NDMPV4:
-      contents = ndmp_get_vol_list(ua, store, listall, scan);
-      break;
-    default:
-      break;
+  if (isAuthProtocolTypeNDMP(store->Protocol)) {
+    contents = native_get_vol_list(ua, store, listall, scan);
+  } else {
+    contents = ndmp_get_vol_list(ua, store, listall, scan);
   }
 
   if (contents) {
@@ -695,18 +683,10 @@ slot_number_t GetNumSlots(UaContext* ua, StorageResource* store)
   }
 
   P(store->runtime_storage_status->changer_lock);
-
-  switch (store->Protocol) {
-    case APT_NATIVE:
-      slots = NativeGetNumSlots(ua, store);
-      break;
-    case APT_NDMPV2:
-    case APT_NDMPV3:
-    case APT_NDMPV4:
-      slots = NdmpGetNumSlots(ua, store);
-      break;
-    default:
-      break;
+  if (isAuthProtocolTypeNative(store->Protocol)) {
+    slots = NativeGetNumSlots(ua, store);
+  } else {
+    slots = NdmpGetNumSlots(ua, store);
   }
 
   store->runtime_storage_status->slots = slots;
@@ -729,19 +709,11 @@ slot_number_t GetNumDrives(UaContext* ua, StorageResource* store)
 
   P(store->runtime_storage_status->changer_lock);
 
-  switch (store->Protocol) {
-    case APT_NATIVE:
-      drives = NativeGetNumDrives(ua, store);
-      break;
-    case APT_NDMPV2:
-    case APT_NDMPV3:
-    case APT_NDMPV4:
-      drives = NdmpGetNumDrives(ua, store);
-      break;
-    default:
-      break;
+  if (isAuthProtocolTypeNative(store->Protocol)) {
+    drives = NativeGetNumDrives(ua, store);
+  } else {
+    drives = NdmpGetNumDrives(ua, store);
   }
-
   store->runtime_storage_status->drives = drives;
 
   V(store->runtime_storage_status->changer_lock);
@@ -757,20 +729,11 @@ bool transfer_volume(UaContext* ua,
   bool retval = false;
 
   P(store->runtime_storage_status->changer_lock);
-
-  switch (store->Protocol) {
-    case APT_NATIVE:
-      retval = NativeTransferVolume(ua, store, src_slot, dst_slot);
-      break;
-    case APT_NDMPV2:
-    case APT_NDMPV3:
-    case APT_NDMPV4:
-      retval = NdmpTransferVolume(ua, store, src_slot, dst_slot);
-      break;
-    default:
-      break;
+  if (isAuthProtocolTypeNative(store->Protocol)) {
+    retval = NativeTransferVolume(ua, store, src_slot, dst_slot);
+  } else {
+    retval = NdmpTransferVolume(ua, store, src_slot, dst_slot);
   }
-
   V(store->runtime_storage_status->changer_lock);
 
   return retval;
@@ -786,21 +749,12 @@ bool DoAutochangerVolumeOperation(UaContext* ua,
 
   P(store->runtime_storage_status->changer_lock);
 
-  switch (store->Protocol) {
-    case APT_NATIVE:
-      retval
-          = NativeAutochangerVolumeOperation(ua, store, operation, drive, slot);
-      break;
-    case APT_NDMPV2:
-    case APT_NDMPV3:
-    case APT_NDMPV4:
-      retval
-          = NdmpAutochangerVolumeOperation(ua, store, operation, drive, slot);
-      break;
-    default:
-      break;
+  if (isAuthProtocolTypeNative(store->Protocol)) {
+    retval
+        = NativeAutochangerVolumeOperation(ua, store, operation, drive, slot);
+  } else {
+    retval = NdmpAutochangerVolumeOperation(ua, store, operation, drive, slot);
   }
-
   V(store->runtime_storage_status->changer_lock);
 
   return retval;

@@ -91,6 +91,7 @@ set(BAREOS_SRCS
     alist.cc
     attr.cc
     attribs.cc
+    auth_protocol_types.cc
     backtrace.cc
     base64.cc
     berrno.cc
