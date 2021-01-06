@@ -58,7 +58,6 @@ class BareosLibcloudApi(object):
             sys.stderr.close()
         sys.stdout = open("/dev/null", "w")
         sys.stderr = open("/dev/null", "w")
-
     def __init__(self, options, last_run, tmp_dir_path):
         self.tmp_dir_path = tmp_dir_path + "/" + str(uuid.uuid4())
         self.count_worker_ready = 0
@@ -233,10 +232,10 @@ class BareosLibcloudApi(object):
 
     def __del__(self):
         try:
-            self._remove_tmp_dir()
             if sys.stdout != None:
                 sys.stdout.close()
             if sys.stderr != None:
                 sys.stderr.close()
+            self._remove_tmp_dir()
         except:
             pass
