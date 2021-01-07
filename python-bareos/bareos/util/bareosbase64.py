@@ -23,6 +23,7 @@ Bareos specific base64 implementation.
 Bacula and therefore Bareos specific implementation of a base64 decoder.
 """
 
+
 class BareosBase64(object):
     """Bareos specific base64 implementation."""
 

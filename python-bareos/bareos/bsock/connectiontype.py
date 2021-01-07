@@ -19,6 +19,7 @@
 
 """Constants for the different Bareos connection types."""
 
+
 class ConnectionType:
     """Constants for the different Bareos connection types."""
 

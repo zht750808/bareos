@@ -25,4 +25,4 @@ from bareos.util.bareosbase64 import BareosBase64
 from bareos.util.password import Password
 from bareos.util.path import Path
 
-__all__ = [ "BareosBase64", "Password", "Path" ]
+__all__ = ["BareosBase64", "Password", "Path"]

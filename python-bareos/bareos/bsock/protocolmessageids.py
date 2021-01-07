@@ -21,6 +21,7 @@
 Protocol Message Ids
 """
 
+
 class ProtocolMessageIds(object):
     """
     From https://github.com/bareos/bareos/blob/master/core/src/lib/bnet.h

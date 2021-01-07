@@ -23,6 +23,7 @@ Handle Bareos passwords.
 
 import hashlib
 
+
 class Password(object):
     """
     Handle Bareos passwords.

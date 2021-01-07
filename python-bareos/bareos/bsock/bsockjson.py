@@ -21,12 +21,14 @@
 
 from bareos.bsock.directorconsolejson import DirectorConsoleJson
 
+
 class BSockJson(DirectorConsoleJson):
     """Communicates with the bareos-director using JSON results.
 
     :deprecated: 15.2.0
-    
+
     Deprecated, use :py:class:`bareos.bsock.DirectorConsoleJson` instead.
     """
+
     def __init__(self, *args, **kwargs):
         super(BSockJson, self).__init__(*args, **kwargs)

@@ -29,7 +29,7 @@ import json
 
 class DirectorConsoleJson(DirectorConsole):
     """Communicate with the Bareos Director Daemon Console interface in API mode 2 (JSON).
-    
+
     Example:
 
        >>> import bareos.bsock
@@ -49,9 +49,9 @@ class DirectorConsoleJson(DirectorConsole):
     """
 
     def __init__(self, *args, **kwargs):
-        """\ 
+        """\
         **Parameters:** The parameter are identical to :py:class:`bareos.bsock.directorconsole.DirectorConsole`.
-        
+
         Raises:
             bareos.exceptions.JsonRpcInvalidJsonReceivedException:
                 if the ".api" command is not available.
@@ -71,13 +71,13 @@ class DirectorConsoleJson(DirectorConsole):
         If the JSON-RPC result indicates an error
         (contains the ``error`` element),
         an exception will be raised.
-        
+
         Args:
            command (str or list): Command to execute. Best provided as a list.
 
         Returns:
             dict: Result received from the Bareos Director.
-        
+
         Raises:
             bareos.exceptions.JsonRpcErrorReceivedException:
                 if an JSON-RPC error object is received.
@@ -97,10 +97,10 @@ class DirectorConsoleJson(DirectorConsole):
 
     def call_fullresult(self, command):
         """Calls a command on the Bareos Director and returns its result.
-        
+
         Returns:
             dict: Result received from the Bareos Director.
-        
+
         Raises:
             bareos.exceptions.JsonRpcInvalidJsonReceivedException:
                 if an invalid JSON-RPC result is received.

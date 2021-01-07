@@ -26,21 +26,25 @@ from bareos.bsock.constants import Constants
 
 class Error(Exception):
     """Base Bareos error exception."""
+
     pass
 
 
 class ConnectionError(Error):
     """Error with the connection."""
+
     pass
 
 
 class ConnectionLostError(Error):
     """Connection lost error."""
+
     pass
 
 
 class SocketEmptyHeader(Error):
     """Socket connection received an empty header. Connection lost?"""
+
     pass
 
 
@@ -52,6 +56,7 @@ class AuthenticationError(ConnectionError):
 
 class PamAuthenticationError(AuthenticationError):
     """Error during PAM authentication."""
+
     pass
 
 

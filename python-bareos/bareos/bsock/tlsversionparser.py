@@ -25,6 +25,7 @@ import argparse
 from collections import OrderedDict
 import ssl
 
+
 class ArgParserTlsVersionAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         setattr(namespace, self.dest, getattr(ssl, self.choices.get(values)))

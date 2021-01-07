@@ -106,7 +106,7 @@ class FileDaemon(LowLevel):
         tls_psk_require=False,
         tls_version=None,
     ):
-        """\ 
+        """\
 
         Args:
            address (str): Address of the Bareos File Daemon (hostname or IP).
@@ -163,7 +163,7 @@ class FileDaemon(LowLevel):
 
         Args:
            command (str or list): Command to execute. Best provided as a list.
-        
+
         Returns:
             bytes: Result received from the File Daemon.
         """

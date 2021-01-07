@@ -30,7 +30,7 @@ class Path(object):
     """
 
     def __init__(self, path=None):
-        """\ 
+        """\
 
         Args:
            path (str, optional): string representation of the file system path.

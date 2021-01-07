@@ -40,4 +40,4 @@ else:
 from bareos.exceptions import *
 from bareos.util.password import Password
 
-__all__ = [ "bsock", "exceptions", "util", "Password" ]
+__all__ = ["bsock", "exceptions", "util", "Password"]
