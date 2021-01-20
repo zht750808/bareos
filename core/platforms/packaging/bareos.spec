@@ -38,7 +38,6 @@ Vendor: 	The Bareos Team
 # default settings
 %define client_only 0
 %define build_qt_monitor 1
-%define build_sqlite3 1
 %define glusterfs 0
 %define droplet 1
 %define have_git 1
@@ -67,7 +66,6 @@ BuildRequires: libtirpc-devel
 #
 %if 0%{?sles_version} == 10
 %define build_qt_monitor 0
-%define build_sqlite3 0
 %define have_git 0
 %define python_plugins 0
 %endif
@@ -94,7 +92,6 @@ BuildRequires: libtirpc-devel
 %define RHEL4 1
 %define client_only 1
 %define build_qt_monitor 0
-%define build_sqlite3 0
 %define have_git 0
 %define python_plugins 0
 %endif
@@ -189,14 +186,6 @@ BuildRequires: libacl-devel
 BuildRequires: pkgconfig
 BuildRequires: lzo-devel
 BuildRequires: logrotate
-%if 0%{?build_sqlite3}
-%if 0%{?suse_version}
-BuildRequires: sqlite3-devel
-%else
-BuildRequires: sqlite-devel
-%endif
-%endif
-BuildRequires: mysql-devel
 BuildRequires: postgresql-devel
 BuildRequires: openssl
 BuildRequires: libcap-devel
@@ -442,26 +431,6 @@ Requires:   %{name}-database-common = %{version}
 Provides:   %{name}-catalog-postgresql
 Provides:   %{name}-database-backend
 
-%package    database-mysql
-Summary:    Libs & tools for mysql catalog
-Group:      Productivity/Archiving/Backup
-Requires:   %{name}-database-common = %{version}
-Provides:   %{name}-catalog-mysql
-Provides:   %{name}-database-backend
-
-%if 0%{?build_sqlite3}
-%package    database-sqlite3
-Summary:    Libs & tools for sqlite3 catalog
-Group:      Productivity/Archiving/Backup
-%if 0%{?suse_version}
-Requires:   sqlite3
-%endif
-%if 0%{?fedora_version}
-Requires:   sqlite
-%endif
-Requires:   %{name}-database-common = %{version}
-Provides:   %{name}-catalog-sqlite3
-Provides:   %{name}-database-backend
 %endif
 
 %package    database-tools
@@ -494,26 +463,10 @@ Requires:   zlib-devel
 Requires:   libacl-devel
 Requires:   postgresql-devel
 Requires:   libcap-devel
-%if 0%{?build_sqlite3}
-%if 0%{?suse_version}
-Requires:   sqlite3-devel
-%else
-Requires:   sqlite-devel
-%endif
-%endif
 %if 0%{?rhel_version} || 0%{?centos_version} || 0%{?fedora_version}
 Requires:   openssl-devel
 %else
 Requires:   libopenssl-devel
-%endif
-%if 0%{?rhel_version} >= 700 || 0%{?centos_version} >= 700 || 0%{?fedora_version} >= 19
-Requires:   mariadb-devel
-%else
-%if 0%{?rhel_version} || 0%{?centos_version} || 0%{?fedora_version}
-Requires:   mysql-devel
-%else
-Requires:   libmysqlclient-devel
-%endif
 %endif
 
 %package    regress-config
@@ -910,18 +863,6 @@ This package contains the shared libraries that abstract the catalog interface
 
 This package contains the shared library to access postgresql as catalog db.
 
-%description database-mysql
-%{dscr}
-
-This package contains the shared library to use mysql as catalog db.
-
-%if 0%{?build_sqlite3}
-%description database-sqlite3
-%{dscr}
-
-This package contains the shared library to use sqlite as catalog db.
-%endif
-
 %description database-tools
 %{dscr}
 
@@ -1032,9 +973,7 @@ cmake  .. \
 %endif
   -Dpostgresql=yes \
   -Dmysql=no \
-%if 0%{?build_sqlite3}
   -Dsqlite3=no \
-%endif
   -Ddir-user=%{director_daemon_user} \
   -Ddir-group=%{daemon_group} \
   -Dsd-user=%{storage_daemon_user} \
@@ -1540,20 +1479,6 @@ mkdir -p %{?buildroot}/%{_libdir}/bareos/plugins/vmware_plugin
 %{script_dir}/ddl/*/postgresql*.sql
 %{backend_dir}/libbareoscats-postgresql.so*
 
-%files database-mysql
-# mysql catalog files
-%defattr(-, root, root)
-%{script_dir}/ddl/*/mysql*.sql
-%{backend_dir}/libbareoscats-mysql.so*
-
-%if 0%{?build_sqlite3}
-%files database-sqlite3
-# sqlite3 catalog files
-%defattr(-, root, root)
-%{script_dir}/ddl/*/sqlite3*.sql
-%{backend_dir}/libbareoscats-sqlite3.so*
-%endif
-
 %files database-tools
 # dbtools with link to db libs (dbcheck, bscan, dbcopy)
 %defattr(-, root, root)
@@ -1980,21 +1905,6 @@ a2enmod php5 &> /dev/null || true
 
 %postun database-postgresql
 /sbin/ldconfig
-
-%post database-mysql
-/sbin/ldconfig
-
-%postun database-mysql
-/sbin/ldconfig
-
-%if 0%{?build_sqlite3}
-%post database-sqlite3
-/sbin/ldconfig
-
-%postun database-sqlite3
-/sbin/ldconfig
-%endif
-
 
 %if 0%{?build_qt_monitor}
 
