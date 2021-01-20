@@ -431,8 +431,6 @@ Requires:   %{name}-database-common = %{version}
 Provides:   %{name}-catalog-postgresql
 Provides:   %{name}-database-backend
 
-%endif
-
 %package    database-tools
 Summary:    Bareos CLI tools with database dependencies (bareos-dbcheck, bareos-dbcopy, bscan)
 Group:      Productivity/Archiving/Backup
