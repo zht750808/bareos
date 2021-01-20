@@ -58,8 +58,8 @@ define CONFIGURE_COMMON
   -Dacl=yes \
   -Dxattr=yes \
   -Dpostgresql=yes \
-  -Dmysql=yes \
-  -Dsqlite3=yes \
+  -Dmysql=no \
+  -Dsqlite3=no \
   -Dopenssl=yes \
   -Ddir-user=$(DIRECTOR_DAEMON_USER) \
   -Ddir-group=$(DAEMON_GROUP) \

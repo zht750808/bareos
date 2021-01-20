@@ -1031,9 +1031,9 @@ cmake  .. \
   -Dclient-only=yes \
 %endif
   -Dpostgresql=yes \
-  -Dmysql=yes \
+  -Dmysql=no \
 %if 0%{?build_sqlite3}
-  -Dsqlite3=yes \
+  -Dsqlite3=no \
 %endif
   -Ddir-user=%{director_daemon_user} \
   -Ddir-group=%{daemon_group} \
