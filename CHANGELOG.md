@@ -6,6 +6,7 @@ and since Bareos version 20 this project adheres to [Semantic Versioning](https:
 ## [Unreleased]
 
 ### Fixed
+- Fix Copy Job behaviour regarding Archive Jobs [PR #717]
 
 ### Added
 
