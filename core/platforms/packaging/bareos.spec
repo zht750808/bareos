@@ -486,41 +486,6 @@ Conflicts:  %{name}-tray-monitor-gtk
 Provides:   %{name}-tray-monitor-qt
 %endif
 
-%package    devel
-Summary:    Devel headers
-Group:      Development/Languages/C and C++
-Requires:   %{name}-common = %{version}
-Requires:   zlib-devel
-Requires:   libacl-devel
-Requires:   postgresql-devel
-Requires:   libcap-devel
-%if 0%{?build_sqlite3}
-%if 0%{?suse_version}
-Requires:   sqlite3-devel
-%else
-Requires:   sqlite-devel
-%endif
-%endif
-%if 0%{?rhel_version} || 0%{?centos_version} || 0%{?fedora_version}
-Requires:   openssl-devel
-%else
-Requires:   libopenssl-devel
-%endif
-%if 0%{?rhel_version} >= 700 || 0%{?centos_version} >= 700 || 0%{?fedora_version} >= 19
-Requires:   mariadb-devel
-%else
-%if 0%{?rhel_version} || 0%{?centos_version} || 0%{?fedora_version}
-Requires:   mysql-devel
-%else
-Requires:   libmysqlclient-devel
-%endif
-%endif
-
-%package    regress-config
-Summary:    Required files for bareos-regress
-Group:      Development/Languages/C and C++
-Requires:   %{name}-common = %{version}
-
 %if 0%{?python_plugins}
 %package    director-python2-plugin
 Summary:    Python plugin for Bareos Director daemon
@@ -938,16 +903,6 @@ This package contains Bareos tools.
 
 This package contains the tray monitor (QT based).
 %endif
-
-%description devel
-%{dscr}
-
-This package contains bareos development files.
-
-%description regress-config
-%{dscr}
-
-This package contains required files for Bareos regression testing.
 
 
 
@@ -1597,10 +1552,6 @@ mkdir -p %{?buildroot}/%{_libdir}/bareos/plugins/vmware_plugin
 # client_only
 %endif
 
-%files devel
-%defattr(-, root, root)
-/usr/include/%{name}
-
 %if 0%{?python_plugins}
 %files filedaemon-python2-plugin
 %defattr(-, root, root)
@@ -1711,15 +1662,6 @@ mkdir -p %{?buildroot}/%{_libdir}/bareos/plugins/vmware_plugin
 %attr(0640, %{director_daemon_user}, %{daemon_group}) %{_sysconfdir}/%{name}/bareos-dir.d/job/BackupRados.conf.example
 %attr(0640, %{director_daemon_user}, %{daemon_group}) %{_sysconfdir}/%{name}/bareos-dir.d/job/RestoreRados.conf.example
 %endif
-
-%files regress-config
-%defattr(-, root, root)
-%{script_dir}/%{name}
-%{script_dir}/bareos-ctl-*
-%{_sbindir}/btestls
-# must be readable by package build user of bareos-regress.
-%attr(0644, %{daemon_user}, %{daemon_group}) %config(noreplace) %{_sysconfdir}/%{name}/bareos-regress.conf
-
 
 #
 # Define some macros for updating the system settings.
