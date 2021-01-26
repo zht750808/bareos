@@ -64,7 +64,6 @@ scripts/bareos-ctl-dir
 scripts/bareos-ctl-fd
 scripts/bareos-ctl-sd
 scripts/btraceback
-scripts/bareos-regress.conf
 src/cats/ddl/versions.map
 src/cats/delete_catalog_backup
 src/cats/drop_bareos_database

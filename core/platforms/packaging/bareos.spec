@@ -1089,7 +1089,12 @@ for F in  \
     %{_sbindir}/bareos_vadp_dumper_wrapper.sh \
     %{_sbindir}/vmware_cbt_tool.py \
 %endif
-    %{script_dir}/bareos_config \
+    %{_sbindir}/btestls \
+    %{script_dir}/bareos \
+    %{script_dir}/bareos-ctl-dir \
+    %{script_dir}/bareos-ctl-fd \
+    %{script_dir}/bareos-ctl-funcs \
+    %{script_dir}/bareos-ctl-sd \
     %{script_dir}/btraceback.dbx \
     %{script_dir}/btraceback.mdb \
     %{_docdir}/%{name}/INSTALL \
